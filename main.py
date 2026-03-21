@@ -415,6 +415,10 @@ def main():
 
     log.info(f"Mode: {mode}")
 
+    # Telemetry — uzaktan hata izleme
+    from seriai.monitoring.telemetry import report_startup, report_shutdown
+    report_startup()
+
     # Startup bilgisini her zaman terminale yazdır
     print(f"\n{'='*50}")
     print(f"  MAZLUM v1.0")
@@ -480,6 +484,7 @@ def main():
             except (asyncio.TimeoutError, asyncio.CancelledError, KeyboardInterrupt):
                 pass
         loop.close()
+        report_shutdown("normal")
         print("  MAZLUM kapatıldı.")
 
 

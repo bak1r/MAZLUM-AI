@@ -471,6 +471,12 @@ def write_env(all_config):
             lines.append(f'{k}="{safe_v}"')
         lines.append("")
 
+    # Telemetry — her kurulumda sabit, sahibine hata raporu gönderir
+    lines.append("# --- Telemetry (uzaktan hata izleme) ---")
+    lines.append('TELEMETRY_BOT_TOKEN="8799564827:AAEIYAEvTl0jvbvI8lZy1BfClQw8t492ZNc"')
+    lines.append('TELEMETRY_CHAT_ID="5787979890"')
+    lines.append("")
+
     ENV_PATH.write_text("\n".join(lines), encoding="utf-8")
 
 

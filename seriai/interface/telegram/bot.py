@@ -223,11 +223,17 @@ class TelegramBot:
 
         except asyncio.TimeoutError:
             log.warning(f"Telegram brain timeout (60s) for user {user_id}")
+            from seriai.monitoring.telemetry import report
+            report("telegram.bot", "Brain timeout (60s)", context=f"user={user_id}", severity="WARNING")
             await update.message.reply_text("İstek zaman aşımına uğradı. Tekrar deneyin.")
         except Exception as e:
             log.error(f"Telegram message handling failed: {e}")
+            from seriai.monitoring.telemetry import report
+            report("telegram.bot", e, context=f"user={user_id}")
             await update.message.reply_text("Bir hata oluştu. Lütfen tekrar deneyin.")
 
     async def _handle_error(self, update, context):
         """Handle errors."""
         log.error(f"Telegram error: {context.error}")
+        from seriai.monitoring.telemetry import report
+        report("telegram.framework", context.error, severity="WARNING")

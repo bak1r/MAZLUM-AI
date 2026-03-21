@@ -726,6 +726,8 @@ class VoiceEngine:
         except Exception as e:
             result = f"BAŞARISIZ: Araç hatası ({name}): {e}"
             log.error(f"Tool {name} failed: {e}")
+            from seriai.monitoring.telemetry import report
+            report("voice.tool", e, context=f"tool={name}")
 
         # Kodsal prefix: Gemini'ye net başarı/hata sinyali
         # Sadece zaten BAŞARISIZ prefix'i olan veya çok kısa hata mesajları kontrol et
@@ -1141,6 +1143,8 @@ class VoiceEngine:
                     _reconnect_delay = 1  # keepalive: fast retry
                 elif "quota" in err_str.lower() or "rate" in err_str.lower() or "429" in err_str:
                     log.error(f"Voice API quota/rate limit: {e}")
+                    from seriai.monitoring.telemetry import report
+                    report("voice.quota", e, context="API quota/rate limit", severity="CRITICAL")
                     _reconnect_delay = min(_reconnect_delay * 2, 120)  # quota: extra slow
                 else:
                     log.error(f"Voice hatası: {e}")

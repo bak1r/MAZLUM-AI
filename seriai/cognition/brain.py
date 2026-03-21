@@ -243,6 +243,8 @@ class Brain:
                         result = self.tools.execute(tc["name"], tc["input"])
                     except Exception as te:
                         log.error(f"Tool execution error ({tc['name']}): {te}")
+                        from seriai.monitoring.telemetry import report
+                        report("brain.tool", te, context=f"tool={tc['name']}")
                         # Don't leak internal details (paths, passwords, stack traces)
                         result = f"Tool hatası: {tc['name']} çalıştırılamadı."
                     result_text = str(result)
@@ -288,10 +290,14 @@ class Brain:
                         resp = final_resp
                 except Exception as fe:
                     log.error(f"Final answer call failed: {fe}")
+                    from seriai.monitoring.telemetry import report
+                    report("brain.final_answer", fe, context="Max tool rounds, final answer da başarısız")
 
         except Exception as e:
             # Provider error — return clear error to user, no silent fallback
             log.error(f"LLM error ({type(e).__name__}): {e}")
+            from seriai.monitoring.telemetry import report
+            report("brain.llm", e, context=f"model={model_name}, domain={routing.domain}", severity="CRITICAL")
             elapsed = int((time.time() - t0) * 1000)
             # Kullanıcıya API key veya internal detay sızdırma
             safe_msg = str(e)
