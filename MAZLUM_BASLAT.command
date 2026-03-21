@@ -14,6 +14,11 @@ echo "  ║                                           ║"
 echo "  ╚═══════════════════════════════════════════╝"
 echo ""
 
+# Apple Silicon Homebrew path (KUR'da kurulduysa)
+if [ -f "/opt/homebrew/bin/brew" ]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+
 # Python kontrolü
 if ! command -v python3 &> /dev/null; then
     echo "  ❌ Python3 bulunamadı! Önce MAZLUM_KUR'u çalıştır."
@@ -38,6 +43,17 @@ if [ -d "venv" ]; then
 elif [ -d ".venv" ]; then
     source .venv/bin/activate
     echo "  ✅ Sanal ortam aktif"
+fi
+
+# Port çakışması temizle (önceki MAZLUM zombie kaldıysa)
+PORT=$(grep -oP 'SERIAI_WEB_PORT="\K[^"]+' .env 2>/dev/null || echo "8420")
+if [ -z "$PORT" ]; then PORT="8420"; fi
+PID=$(lsof -ti:"$PORT" 2>/dev/null)
+if [ -n "$PID" ]; then
+    echo "  ⚠️ Port $PORT meşgul — eski işlem kapatılıyor..."
+    kill -9 $PID 2>/dev/null
+    sleep 1
+    echo "  ✅ Port serbest"
 fi
 
 echo "  🚀 MAZLUM başlıyor..."
