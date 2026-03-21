@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAZLUM — Intelligence Engine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#050910;--bg2:#080e1a;--panel:rgba(8,14,28,0.92);
+  --border:rgba(74,144,217,0.10);--border-h:rgba(74,144,217,0.25);
+  --blue:#4a90d9;--cyan:#00d4ff;--gold:#d4a017;--green:#00c868;
+  --red:#e84040;--purple:#7b68ee;--amber:#f59e0b;--pink:#ec4899;
+  --text:#c8d6e8;--text2:#94a3b8;--dim:#3d4a5c;
+  --glass:blur(24px) saturate(1.5);
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+::selection{background:rgba(0,212,255,0.2)}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(74,144,217,0.15);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(74,144,217,0.3)}
+
+/* ═══════════════════ HEADER ═══════════════════ */
+header{height:48px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:10px;backdrop-filter:var(--glass);z-index:100;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:7px;min-width:140px}
+.brand-logo{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#0d1b2a,#1b2838);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.brand-logo::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle,var(--cyan),transparent);opacity:0.6;animation:logo-breathe 3s ease infinite}
+.brand-name{font-size:16px;font-weight:800;letter-spacing:1.5px;background:linear-gradient(135deg,var(--cyan) 0%,var(--blue) 50%,var(--purple) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brand-ver{font-size:9px;color:var(--dim);letter-spacing:1.5px;font-weight:500}
+.hdr-center{flex:1;display:flex;justify-content:center;align-items:center;gap:10px}
+.badge{padding:3px 10px;border-radius:16px;font-size:10px;font-weight:600;border:1px solid;letter-spacing:0.5px;white-space:nowrap}
+.badge-model{color:var(--cyan);border-color:rgba(0,212,255,0.25);background:rgba(0,212,255,0.04)}
+.badge-domain{color:var(--gold);border-color:rgba(212,160,23,0.25);background:rgba(212,160,23,0.04)}
+.badge-switch{color:var(--purple);border-color:rgba(123,104,238,0.25);background:rgba(123,104,238,0.04);display:none;gap:5px;align-items:center}
+.badge-switch.vis{display:inline-flex}
+.switch-dot{width:6px;height:6px;border-radius:50%;background:var(--purple)}
+.switch-reason{font-size:9px;color:var(--dim);font-weight:400}
+.badge-think{color:var(--amber);border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.04);display:none;align-items:center;gap:5px}
+.badge-think.vis{display:inline-flex}
+.think-dots{display:flex;gap:3px}
+.think-dots span{width:4px;height:4px;border-radius:50%;background:var(--amber);animation:t-dot 1.4s ease infinite}
+.think-dots span:nth-child(2){animation-delay:0.2s}
+.think-dots span:nth-child(3){animation-delay:0.4s}
+.hdr-right{display:flex;align-items:center;gap:8px;min-width:140px;justify-content:flex-end}
+.btn-dur{padding:4px 12px;border-radius:6px;border:1px solid var(--red);background:rgba(232,64,64,0.08);color:var(--red);font-size:10px;font-weight:700;cursor:pointer;letter-spacing:1px;display:none;transition:all 0.2s}
+.btn-dur:hover{background:rgba(232,64,64,0.2)}
+.btn-dur.vis{display:block;animation:dur-pop 0.3s ease}
+.conn{display:flex;align-items:center;gap:5px}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--red);transition:all 0.5s;box-shadow:none}
+.conn-dot.on{background:var(--green);box-shadow:0 0 6px rgba(0,200,104,0.5)}
+.conn-lbl{font-size:9px;color:var(--dim);letter-spacing:0.5px}
+
+/* ═══════════════════ MAIN GRID ═══════════════════ */
+.main{flex:1;display:grid;grid-template-columns:190px 1fr 210px;overflow:hidden}
+
+/* ═══════════════════ LEFT: TOOL RACK ═══════════════════ */
+.panel-l{background:var(--panel);border-right:1px solid var(--border);overflow-y:auto;padding:10px 0;backdrop-filter:var(--glass)}
+.tool-cat{padding:2px 10px;margin-top:10px}
+.tool-cat:first-child{margin-top:0}
+.tool-cat-hdr{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:5px;font-weight:700;padding-left:2px}
+.tool-row{display:flex;align-items:center;gap:7px;padding:3px 10px;font-size:10.5px;color:var(--dim);transition:all 0.15s;border-radius:4px;cursor:default}
+.tool-row:hover{background:rgba(74,144,217,0.05);color:var(--text2)}
+.tool-dot{width:5px;height:5px;border-radius:50%;background:rgba(74,144,217,0.15);flex-shrink:0;transition:all 0.3s}
+.tool-row.running .tool-dot{background:var(--amber);box-shadow:0 0 8px rgba(245,158,11,0.6);animation:pulse-d 1s ease infinite}
+.tool-row.done .tool-dot{background:var(--green);box-shadow:0 0 6px rgba(0,200,104,0.4)}
+.tool-row.error .tool-dot{background:var(--red);box-shadow:0 0 6px rgba(232,64,64,0.4)}
+.tool-nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tool-st{font-size:8px;font-family:'JetBrains Mono',monospace;color:var(--dim);min-width:20px;text-align:right}
+
+/* ═══════════════════ CENTER ═══════════════════ */
+.panel-c{display:flex;flex-direction:column;overflow:hidden;position:relative}
+
+/* Brain */
+.brain-wrap{height:280px;position:relative;flex-shrink:0;overflow:hidden}
+#brainCanvas{width:100%;height:100%;display:block}
+.brain-label{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:4px;color:var(--dim);text-transform:uppercase;pointer-events:none;transition:color 0.5s}
+.brain-label.thinking{color:var(--amber)}
+.brain-label.speaking{color:var(--green)}
+.brain-label.listening{color:var(--cyan)}
+
+/* Audio Level Meter */
+.audio-meter{position:absolute;bottom:0;left:0;right:0;height:3px;background:transparent}
+.audio-meter-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),var(--green));transition:width 0.1s;border-radius:0 2px 2px 0}
+
+/* Model Bar */
+.model-bar{display:flex;justify-content:center;gap:14px;padding:5px 0;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(8,14,28,0.5)}
+.m-chip{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim);font-weight:600;letter-spacing:0.5px;transition:all 0.3s;cursor:default;padding:2px 8px;border-radius:10px}
+.m-chip.active{color:#fff}
+.m-chip .m-dot{width:5px;height:5px;border-radius:50%;transition:all 0.3s}
+.m-chip.active .m-dot{animation:pulse-d 1.2s ease infinite}
+
+/* Chat */
+.chat-area{flex:1;overflow-y:auto;padding:10px 16px;display:flex;flex-direction:column;gap:1px}
+.chat-line{font-size:12px;line-height:1.65;animation:msg-in 0.25s ease;padding:1px 0}
+.chat-line .tag{font-weight:700;font-size:10px;margin-right:5px;letter-spacing:0.3px}
+.tag-u{color:var(--gold)}
+.tag-a{color:var(--cyan)}
+.tag-s{color:var(--dim)}
+.tag-t{color:var(--purple)}
+.chat-meta{font-size:8px;color:var(--dim);font-family:'JetBrains Mono',monospace;margin-left:3px}
+.chat-line strong{color:var(--text);font-weight:600}
+.chat-typing{display:inline}
+.chat-cursor{display:inline-block;width:2px;height:13px;background:var(--cyan);margin-left:1px;animation:blink 0.8s step-end infinite;vertical-align:text-bottom}
+
+/* Input */
+.input-wrap{padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:6px;background:var(--panel);backdrop-filter:var(--glass);flex-shrink:0;align-items:center}
+.input-wrap input{flex:1;background:rgba(15,22,40,0.9);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12.5px;outline:none;font-family:'Inter',sans-serif;transition:border-color 0.2s}
+.input-wrap input:focus{border-color:var(--blue)}
+.input-wrap input::placeholder{color:var(--dim)}
+.btn-send{padding:9px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--blue),var(--purple));color:white;font-size:11px;cursor:pointer;font-weight:600;transition:all 0.2s;letter-spacing:0.3px}
+.btn-send:hover{filter:brightness(1.15);transform:translateY(-1px)}
+.btn-send:active{transform:translateY(0)}
+.btn-mic{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--dim);font-size:15px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.btn-mic:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-mic.on{color:var(--cyan);border-color:var(--cyan);background:rgba(0,212,255,0.06);animation:mic-glow 2s ease infinite}
+.shortcut-hint{font-size:8px;color:var(--dim);letter-spacing:0.5px;flex-shrink:0}
+
+/* ═══════════════════ RIGHT PANEL ═══════════════════ */
+.panel-r{background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:0;backdrop-filter:var(--glass);display:flex;flex-direction:column}
+.r-sec{padding:10px 12px;border-bottom:1px solid var(--border)}
+.r-sec:last-child{border-bottom:none}
+.r-title{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:7px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.r-title .r-btn{font-size:8px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--dim);cursor:pointer;transition:all 0.2s}
+.r-title .r-btn:hover{border-color:var(--blue);color:var(--text2)}
+
+/* Notes */
+.note{font-size:10px;padding:5px 7px;border-left:2px solid var(--blue);margin-bottom:3px;color:var(--text);animation:note-in 0.3s ease;background:rgba(74,144,217,0.03);border-radius:0 3px 3px 0;line-height:1.5}
+.note.urgent{border-left-color:var(--red)}
+.note.warn{border-left-color:var(--amber)}
+.note .note-t{font-size:8px;color:var(--dim);display:block;margin-top:2px;font-family:'JetBrains Mono',monospace}
+
+/* Cost */
+.cost-row{display:flex;justify-content:space-between;font-size:10px;padding:2px 0}
+.cost-row .cost-v{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--green)}
+
+/* Stats */
+.stat-row{display:flex;justify-content:space-between;font-size:10px;padding:2px 0}
+.stat-lbl{color:var(--dim)}
+.stat-v{font-family:'JetBrains Mono',monospace;font-weight:500}
+
+/* Health */
+.h-row{display:flex;align-items:center;gap:6px;font-size:10px;padding:2px 0}
+.h-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.h-ok{background:var(--green);box-shadow:0 0 4px rgba(0,200,104,0.4)}
+.h-warn{background:var(--amber);box-shadow:0 0 4px rgba(245,158,11,0.4)}
+.h-err{background:var(--red);box-shadow:0 0 4px rgba(232,64,64,0.4)}
+.h-off{background:var(--dim)}
+.h-lbl{flex:1;color:var(--text2)}
+.h-val{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--dim)}
+
+/* Capabilities */
+.cap-tag{display:inline-block;font-size:8px;padding:2px 6px;border-radius:8px;margin:1px;border:1px solid;font-weight:500;letter-spacing:0.3px}
+.cap-tag.on{color:var(--green);border-color:rgba(0,200,104,0.25);background:rgba(0,200,104,0.04)}
+.cap-tag.part{color:var(--amber);border-color:rgba(245,158,11,0.25);background:rgba(245,158,11,0.04)}
+.cap-tag.off{color:var(--dim);border-color:var(--border)}
+
+/* ═══════════════════ THINKING PANEL ═══════════════════ */
+.think-step{font-size:10px;padding:4px 7px;margin-bottom:2px;border-radius:4px;animation:note-in 0.3s ease;display:flex;align-items:center;gap:6px;line-height:1.4}
+.think-step .ts-icon{font-size:11px;flex-shrink:0;width:16px;text-align:center}
+.think-step .ts-text{flex:1;color:var(--text2)}
+.think-step.ts-active{background:rgba(245,158,11,0.06);border-left:2px solid var(--amber);color:var(--text)}
+.think-step.ts-active .ts-text{color:var(--text)}
+.think-step.ts-done{border-left:2px solid var(--green)}
+.think-step.ts-done .ts-text{color:var(--text2)}
+.think-timer{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--amber);text-align:center;padding:4px 0;letter-spacing:1px}
+.chat-think-inline{font-size:10px;color:var(--amber);padding:2px 0;animation:msg-in 0.25s ease;display:flex;align-items:center;gap:6px}
+.chat-think-inline .cti-dot{width:5px;height:5px;border-radius:50%;background:var(--amber);animation:pulse-d 1s ease infinite}
+.chat-think-inline .cti-tool{color:var(--purple);font-weight:600;font-size:9px;letter-spacing:0.5px}
+
+/* ═══════════════════ FOOTER ═══════════════════ */
+footer{height:36px;background:var(--panel);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 14px;justify-content:space-between;backdrop-filter:var(--glass);flex-shrink:0}
+.f-left{display:flex;gap:12px}
+.daemon{display:flex;align-items:center;gap:4px;font-size:8px;color:var(--dim);letter-spacing:1px;font-weight:600}
+.d-dot{width:4px;height:4px;border-radius:50%;background:var(--dim);transition:all 0.3s}
+.d-dot.up{background:var(--green);animation:heartbeat 2s ease infinite}
+.d-dot.deg{background:var(--amber);animation:heartbeat 2s ease infinite}
+.d-dot.down{background:var(--red)}
+.f-center{font-size:8px;color:rgba(74,144,217,0.2);letter-spacing:4px;font-weight:600}
+.f-right{display:flex;gap:6px;align-items:center}
+.f-btn{font-size:9px;padding:3px 10px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--dim);cursor:pointer;transition:all 0.2s;font-weight:500}
+.f-btn:hover{border-color:var(--blue);color:var(--text2)}
+
+/* ═══════════════════ NOTIFICATIONS ═══════════════════ */
+.notif-container{position:fixed;top:56px;right:16px;width:300px;z-index:200;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.notif{pointer-events:auto;background:rgba(8,14,28,0.95);border:1px solid var(--border-h);border-radius:10px;padding:12px 14px;backdrop-filter:blur(20px) saturate(1.8);animation:notif-in 0.4s cubic-bezier(0.175,0.885,0.32,1.275);box-shadow:0 12px 40px rgba(0,0,0,0.5),0 0 1px rgba(0,212,255,0.15)}
+.notif.urgent{border-color:rgba(232,64,64,0.4);box-shadow:0 12px 40px rgba(0,0,0,0.5),0 0 20px rgba(232,64,64,0.08)}
+.notif.exit{animation:notif-out 0.3s ease forwards}
+.notif-title{font-size:9px;letter-spacing:2px;font-weight:700;color:var(--cyan);margin-bottom:5px;text-transform:uppercase}
+.notif.urgent .notif-title{color:var(--red);animation:urgent-pulse 2s ease infinite}
+@keyframes urgent-pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+.notif-body{font-size:11px;color:var(--text2);line-height:1.5}
+
+/* Insight alerts */
+.insight-container{position:fixed;bottom:44px;right:16px;width:300px;z-index:200;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.insight{pointer-events:auto;background:var(--panel);border:1px solid var(--border-h);border-radius:8px;padding:10px 12px;backdrop-filter:var(--glass);animation:notif-in 0.3s ease;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.insight.exit{animation:notif-out 0.3s ease forwards}
+.insight-hdr{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.insight-icon{font-size:12px}
+.insight-ttl{font-size:10px;font-weight:700;color:var(--text)}
+.insight-body{font-size:10px;color:var(--text2);line-height:1.5}
+.insight-src{font-size:8px;color:var(--dim);margin-top:3px;font-family:'JetBrains Mono',monospace}
+
+/* ═══════════════════ ANIMATIONS ═══════════════════ */
+@keyframes logo-breathe{0%,100%{opacity:0.4;transform:scale(1)}50%{opacity:0.8;transform:scale(1.1)}}
+@keyframes t-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(0.5)}}
+@keyframes pulse-d{0%,100%{opacity:1;box-shadow:0 0 4px currentColor}50%{opacity:0.5;box-shadow:0 0 10px currentColor}}
+@keyframes msg-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@keyframes note-in{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+@keyframes heartbeat{0%,70%,100%{transform:scale(1)}80%{transform:scale(1.5)}}
+@keyframes blink{50%{opacity:0}}
+@keyframes notif-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes notif-out{to{opacity:0;transform:translateX(20px)}}
+@keyframes dur-pop{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes mic-glow{0%,100%{box-shadow:0 0 0 0 rgba(0,212,255,0.2)}50%{box-shadow:0 0 0 6px rgba(0,212,255,0)}}
+@keyframes scan-line{0%{top:0;opacity:0.6}100%{top:100%;opacity:0}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header>
+  <div class="brand">
+    <div class="brand-logo"></div>
+    <span class="brand-name">MAZLUM</span>
+    <span class="brand-ver">v1.0</span>
+  </div>
+  <div class="hdr-center">
+    <span class="badge badge-model" id="hModel">SONNET 4</span>
+    <span class="badge badge-domain" id="hDomain">GENEL</span>
+    <span class="badge badge-switch" id="hSwitch"><span class="switch-dot" id="hSwitchDot"></span><span id="hSwitchName"></span><span class="switch-reason" id="hSwitchReason"></span></span>
+    <span class="badge badge-think" id="hThink"><span class="think-dots"><span></span><span></span><span></span></span><span id="hThinkText">DÜŞÜNÜYOR</span></span>
+  </div>
+  <div class="hdr-right">
+    <button class="btn-dur" id="btnDur" title="İşlemi iptal et">DUR</button>
+    <div class="conn">
+      <span class="conn-lbl" id="connLbl">Bağlanıyor</span>
+      <div class="conn-dot" id="connDot"></div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<div class="main">
+
+  <!-- LEFT: Tool Rack -->
+  <div class="panel-l" id="toolRack"></div>
+
+  <!-- CENTER -->
+  <div class="panel-c">
+    <div class="brain-wrap">
+      <canvas id="brainCanvas"></canvas>
+      <div class="brain-label" id="brainLabel">HAZIR</div>
+      <div class="audio-meter"><div class="audio-meter-fill" id="audioMeter"></div></div>
+    </div>
+    <div class="model-bar">
+      <div class="m-chip" id="cGemini" data-m="gemini"><div class="m-dot" style="background:#4285f4"></div>GEMINI</div>
+      <div class="m-chip" id="cHaiku" data-m="haiku"><div class="m-dot" style="background:var(--green)"></div>HAIKU</div>
+      <div class="m-chip" id="cSonnet" data-m="sonnet"><div class="m-dot" style="background:var(--blue)"></div>SONNET</div>
+      <div class="m-chip" id="cFast" data-m="fast"><div class="m-dot" style="background:var(--gold)"></div>FAST-PATH</div>
+    </div>
+    <div class="chat-area" id="chatArea"></div>
+    <div class="input-wrap">
+      <button class="btn-mic" id="btnMic" title="Sesli konuş (M)">🎤</button>
+      <input type="text" id="msgInput" placeholder="Mesaj yaz veya sesli konuş..." autocomplete="off">
+      <button class="btn-send" id="btnSend">Gönder</button>
+      <span class="shortcut-hint">⏎</span>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="panel-r">
+    <!-- Thinking Process -->
+    <div class="r-sec" id="thinkSec" style="display:none">
+      <div class="r-title" style="color:var(--amber)">🧠 DÜŞÜNME SÜRECİ</div>
+      <div id="thinkSteps"></div>
+      <div class="think-timer" id="thinkTimer"></div>
+    </div>
+    <!-- Notes -->
+    <div class="r-sec">
+      <div class="r-title" style="color:var(--cyan)">NOTLAR</div>
+      <div id="notes"></div>
+    </div>
+    <!-- Stats -->
+    <div class="r-sec">
+      <div class="r-title" style="color:var(--gold)">İSTATİSTİK</div>
+      <div>
+        <div class="stat-row"><span class="stat-lbl">İşlem</span><span class="stat-v" id="sCount">0</span></div>
+        <div class="stat-row"><span class="stat-lbl">Token</span><span class="stat-v" id="sToken">0</span></div>
+        <div class="stat-row"><span class="stat-lbl">Ort. Gecikme</span><span class="stat-v" id="sLatency">—</span></div>
+        <div class="stat-row"><span class="stat-lbl">Son Model</span><span class="stat-v" id="sModel">—</span></div>
+      </div>
+    </div>
+    <!-- Cost -->
+    <div class="r-sec">
+      <div class="r-title" style="color:var(--green)">MALİYET</div>
+      <div>
+        <div class="cost-row"><span class="stat-lbl">Bugün</span><span class="cost-v" id="costToday">$0.00</span></div>
+        <div class="cost-row"><span class="stat-lbl">Toplam</span><span class="cost-v" id="costTotal">$0.00</span></div>
+      </div>
+    </div>
+    <!-- Health -->
+    <div class="r-sec">
+      <div class="r-title" style="color:var(--purple)">SİSTEM SAĞLIĞI <button class="r-btn" id="btnScan">TARA</button></div>
+      <div id="health">
+        <div class="h-row"><div class="h-dot h-off" id="hAnthro"></div><span class="h-lbl">Anthropic API</span><span class="h-val" id="hAnthroV">—</span></div>
+        <div class="h-row"><div class="h-dot h-off" id="hDb"></div><span class="h-lbl">PostgreSQL</span><span class="h-val" id="hDbV">—</span></div>
+        <div class="h-row"><div class="h-dot h-off" id="hTg"></div><span class="h-lbl">Telegram</span><span class="h-val" id="hTgV">—</span></div>
+        <div class="h-row"><div class="h-dot h-off" id="hVoice"></div><span class="h-lbl">Voice Engine</span><span class="h-val" id="hVoiceV">—</span></div>
+        <div class="h-row"><div class="h-dot h-off" id="hLatency"></div><span class="h-lbl">Gecikme</span><span class="h-val" id="hLatencyV">—</span></div>
+      </div>
+    </div>
+    <!-- Capabilities -->
+    <div class="r-sec">
+      <div class="r-title" style="color:var(--blue)">YETENEKLER</div>
+      <div id="caps"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer>
+  <div class="f-left">
+    <div class="daemon"><div class="d-dot" id="dWeb"></div>WEB</div>
+    <div class="daemon"><div class="d-dot" id="dTg"></div>TELEGRAM</div>
+    <div class="daemon"><div class="d-dot" id="dVoice"></div>VOICE</div>
+    <div class="daemon"><div class="d-dot" id="dDb"></div>DATABASE</div>
+  </div>
+  <div class="f-center">MAZLUM INTELLIGENCE</div>
+  <div class="f-right">
+    <button class="f-btn" id="btnSession">YENİ OTURUM</button>
+  </div>
+</footer>
+
+<!-- Notification containers -->
+<div class="notif-container" id="notifBox"></div>
+<div class="insight-container" id="insightBox"></div>
+
+<script>
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  MAZLUM Web UI — Neural Intelligence Interface               ║
+// ║  Advanced brain, full state management,                      ║
+// ║  typewriter effect, audio meter, insights, cost tracking     ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// ─── Tool Registry ──────────────────────────────────────────────
+const TOOL_DISPLAY = {
+  db_query:'DB Sorgu', db_schema:'DB Şema', db_describe:'DB Tanım', db_describe_table:'DB Tablo',
+  open_app:'Uygulama Aç', close_app:'Uygulama Kapat', open_file:'Dosya Aç',
+  list_files:'Dosya Listele', create_file:'Dosya Oluştur', computer_settings:'Bilgisayar',
+  open_url:'URL Aç', web_search:'Web Ara',
+  check_telegram_mentions:'TG Etiketler', telegram_summary:'TG Özet',
+  search_telegram:'TG Arama', list_telegram_chats:'TG Sohbetler',
+  read_telegram_chat:'TG Mesaj Oku', reply_telegram:'TG Yanıt',
+  seriai_brain:'Beyin', self_shutdown:'Kapat',
+  knowledge_search:'Bilgi Ara', calendar_manager:'Takvim', reminder_set:'Hatırlatıcı',
+  note_taker:'Not Al', send_message:'Mesaj Gönder', email_manager:'E-Posta',
+  screen_process:'Ekran Oku', browser_control:'Tarayıcı', cmd_control:'Terminal',
+  file_manager:'Dosya Yönetici', code_helper:'Kod Yardım', morning_briefing:'Brifing',
+};
+
+const TOOL_CATS = {
+  'VERİTABANI':{color:'#4a90d9', tools:['db_query','db_schema','db_describe','db_describe_table']},
+  'TELEGRAM':{color:'#7b68ee', tools:['check_telegram_mentions','telegram_summary','search_telegram','list_telegram_chats','read_telegram_chat','reply_telegram']},
+  'MASAÜSTÜ':{color:'#00c868', tools:['open_app','close_app','open_file','list_files','create_file','computer_settings','open_url']},
+  'ARAŞTIRMA':{color:'#00d4ff', tools:['web_search','knowledge_search']},
+  'ZEKİ':{color:'#f59e0b', tools:['seriai_brain','self_shutdown']},
+  'İLETİŞİM':{color:'#ec4899', tools:['send_message','email_manager','calendar_manager','reminder_set','note_taker']},
+  'SİSTEM':{color:'#d4a017', tools:['screen_process','browser_control','cmd_control','file_manager','code_helper']},
+};
+
+const MODEL_COLORS = {gemini:'#4285f4', haiku:'#00c868', sonnet:'#4a90d9', opus:'#f0c040', 'fast-path':'#d4a017', fast:'#d4a017'};
+
+// ─── Global State ────────────────────────────────────────────────
+let ws = null, connected = false;
+let brainState = 'idle', audioLevel = 0;
+let voiceOn = false, recognition = null;
+let voiceEngineActive = false;  // PyAudio voice engine running
+let totalTokens = 0, totalReqs = 0, totalLatency = 0, msgCounter = 0;
+let reconnectMs = 1000, reconnectAttempts = 0;
+let isThinking = false;
+let switchTimer = null, toolTimers = {};
+let costToday = 0, costTotal = 0;
+
+// ─── Helpers ─────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+const now = () => new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+// ═══════════════════════════════════════════════════════════════
+// WEBSOCKET
+// ═══════════════════════════════════════════════════════════════
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+
+  ws.onopen = () => {
+    connected = true;
+    reconnectAttempts = 0;
+    reconnectMs = 1000;
+    setConn(true);
+    $('dWeb').classList.add('up');
+  };
+
+  ws.onmessage = e => {
+    try {
+      const msg = JSON.parse(e.data);
+      handleEvent(msg.type, msg.data || msg);
+    } catch(err) { console.warn('WS parse:', err); }
+  };
+
+  ws.onclose = () => {
+    connected = false;
+    setConn(false);
+    $('dWeb').classList.remove('up');
+    reconnectAttempts++;
+    const backoff = Math.min(reconnectMs * Math.pow(1.5, reconnectAttempts - 1), 30000);
+    const jitter = backoff * (0.5 + Math.random() * 0.5);
+    setTimeout(connectWS, jitter);
+  };
+
+  ws.onerror = () => {};
+}
+
+function send(action, data = {}) {
+  if (ws && ws.readyState === WebSocket.OPEN)
+    ws.send(JSON.stringify({ action, ...data }));
+}
+
+function setConn(on) {
+  $('connDot').classList.toggle('on', on);
+  $('connLbl').textContent = on ? 'Bağlı' : (reconnectAttempts > 0 ? `Bağlanıyor (${reconnectAttempts})` : 'Bağlanıyor');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EVENT ROUTER
+// ═══════════════════════════════════════════════════════════════
+function handleEvent(type, data) {
+  switch(type) {
+    case 'state_sync':    onStateSync(data); break;
+    case 'transcript':    onTranscript(data); break;
+    case 'thinking':      onThinking(data); break;
+    case 'speaking':      onSpeaking(data); break;
+    case 'tool_state':    onToolState(data); break;
+    case 'response':      break; // handled by broadcast transcript, no duplicate
+    case 'model_activity':onModelActivity(data); break;
+    case 'model_switch':  onModelSwitch(data); break;
+    case 'note':          addNote(data); break;
+    case 'notification':  showNotif(data); break;
+    case 'insight':       showInsight(data); break;
+    case 'cost':          onCost(data); break;
+    case 'audio_level':   onAudioLevel(data); break;
+    case 'daemon_status': onDaemonStatus(data); break;
+    case 'env_status':    onEnvStatus(data); break;
+    case 'connection':    setConn(data.active); break;
+    case 'telegram_mention': onTelegramMention(data); break;
+    case 'telegram_message': onTelegramMessage(data); break;
+  }
+}
+
+// ─── State Sync ──────────────────────────────────────────────────
+function onStateSync(s) {
+  if (!s) return;
+  if (s.tools) buildToolRack(s.tools);
+  if (s.model) {
+    const m = s.model.toLowerCase();
+    $('hModel').textContent = m.includes('haiku') ? 'HAIKU 4.5' : m.includes('sonnet') ? 'SONNET 4' : m.includes('opus') ? 'OPUS 4' : s.model;
+  }
+  // Mark daemons from state
+  if (s.connected) {
+    $('dWeb').classList.add('up');
+    $('hAnthro').className = 'h-dot h-ok'; $('hAnthroV').textContent = 'Aktif';
+  }
+  // Update health indicators from state
+  updateHealthFromSync(s);
+}
+
+function updateHealthFromSync(s) {
+  $('hAnthro').className = 'h-dot h-ok'; $('hAnthroV').textContent = 'Aktif';
+  if (s.db_active || (s.tools && s.tools.includes('db_query'))) {
+    $('hDb').className = 'h-dot h-ok'; $('hDbV').textContent = 'Bağlı';
+    $('dDb').classList.add('up');
+  }
+  if (s.telegram_active) {
+    $('hTg').className = 'h-dot h-ok'; $('hTgV').textContent = 'Aktif';
+    $('dTg').classList.add('up');
+  }
+  // Voice engine status from config
+  if (s.voice_active) {
+    voiceEngineActive = true;
+    $('dVoice').classList.add('up');
+    $('hVoice').className = 'h-dot h-ok'; $('hVoiceV').textContent = 'Aktif';
+    setBrainState('listening');
+  }
+}
+
+// ─── Transcript ──────────────────────────────────────────────────
+function onTranscript(d) {
+  const area = $('chatArea');
+  const div = document.createElement('div');
+  div.className = 'chat-line';
+
+  if (d.role === 'user') {
+    div.innerHTML = `<span class="tag tag-u">SEN:</span> ${esc(d.text)}`;
+    area.appendChild(div);
+    // Flash notification for voice input
+    if (voiceEngineActive) {
+      showNotif({title:'SES ALGILANDI', message: d.text.length > 60 ? d.text.slice(0,60)+'...' : d.text, duration: 2500});
+    }
+  } else if (d.role === 'ai') {
+    // Stats update
+    msgCounter++;
+    totalReqs++;
+    if (d.tokens) { totalTokens += d.tokens; updateCostEstimate(d.tokens, d.model); }
+    if (d.latency_ms) { totalLatency += d.latency_ms; }
+    $('sCount').textContent = totalReqs;
+    $('sToken').textContent = totalTokens.toLocaleString();
+    const avgLat = totalLatency > 0 ? Math.round(totalLatency / totalReqs) : 0;
+    $('sLatency').textContent = avgLat > 0 ? avgLat + 'ms' : '—';
+
+    // Model badges
+    if (d.model) {
+      const m = d.model.toLowerCase();
+      const label = m.includes('gemini') ? 'GEMINI' : m.includes('fast') ? 'FAST-PATH' : m.includes('haiku') ? 'HAIKU 4.5' : m.includes('sonnet') ? 'SONNET 4' : m.includes('opus') ? 'OPUS 4' : d.model;
+      $('hModel').textContent = label;
+      $('sModel').textContent = label;
+      activateChip(m);
+    }
+    if (d.domain) $('hDomain').textContent = d.domain.toUpperCase();
+
+    // Meta — rich info line
+    let meta = '';
+    if (d.model) { const m = d.model.toLowerCase(); meta += m.includes('gemini') ? '⚡gemini' : m.includes('fast') ? '🏎️fast' : m.includes('haiku') ? '💨haiku' : m.includes('sonnet') ? '🧠sonnet' : d.model; }
+    if (d.domain && d.domain !== 'general') meta += ` · 📍${d.domain}`;
+    if (d.latency_ms) meta += ` · ⏱${d.latency_ms}ms`;
+    if (d.tokens) meta += ` · ${d.tokens}tk`;
+    if (d.tools_used?.length) meta += ` · 🔧${d.tools_used.join(' → ')}`;
+
+    // Typewriter effect (unique ID per message)
+    const twId = 'tw-' + msgCounter;
+    div.innerHTML = `<span class="tag tag-a">MAZLUM:</span> <span class="chat-typing" id="${twId}"></span>`;
+    area.appendChild(div);
+    typewrite(twId, d.text, meta);
+
+    // Update latency health indicator
+    if (d.latency_ms) {
+      const lat = d.latency_ms;
+      if (lat < 3000) { $('hLatency').className = 'h-dot h-ok'; $('hLatencyV').textContent = lat + 'ms'; }
+      else if (lat < 8000) { $('hLatency').className = 'h-dot h-warn'; $('hLatencyV').textContent = lat + 'ms'; }
+      else { $('hLatency').className = 'h-dot h-err'; $('hLatencyV').textContent = lat + 'ms'; }
+    }
+
+    // TTS (only for web speech, not when PyAudio voice engine handles it)
+    if (voiceOn && !voiceEngineActive && d.text) speakText(d.text);
+  } else if (d.role === 'system') {
+    div.innerHTML = `<span class="tag tag-s">SİSTEM:</span> ${esc(d.text)}`;
+    area.appendChild(div);
+  }
+
+  // Cap & scroll
+  while (area.children.length > 300) area.removeChild(area.firstChild);
+  area.scrollTop = area.scrollHeight;
+}
+
+// Typewriter
+function typewrite(elId, text, meta) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  let i = 0;
+  const formatted = formatText(text);
+  // Use chunks for speed
+  const chunkSize = Math.max(1, Math.floor(text.length / 60));
+  const cursor = document.createElement('span');
+  cursor.className = 'chat-cursor';
+  el.appendChild(cursor);
+
+  function tick() {
+    if (i >= formatted.length) {
+      cursor.remove();
+      if (meta) {
+        const metaEl = document.createElement('span');
+        metaEl.className = 'chat-meta';
+        metaEl.textContent = ` [${meta}]`;
+        el.appendChild(metaEl);
+      }
+      return;
+    }
+    // Find safe chunk boundary (don't break HTML tags)
+    let end = Math.min(i + chunkSize, formatted.length);
+    // If we're inside a tag, extend to close it
+    if (end < formatted.length) {
+      const rest = formatted.slice(i, end + 50);
+      const openBracket = rest.lastIndexOf('<', end - i);
+      const closeBracket = rest.lastIndexOf('>', end - i);
+      if (openBracket > closeBracket) {
+        const nextClose = rest.indexOf('>', end - i);
+        if (nextClose !== -1) end = i + nextClose + 1;
+      }
+    }
+    const chunk = formatted.slice(i, end);
+    el.insertBefore(document.createRange().createContextualFragment(chunk), cursor);
+    i = end;
+    $('chatArea').scrollTop = $('chatArea').scrollHeight;
+    requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+function formatText(text) {
+  let t = esc(text);
+  t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/\n/g, '<br>');
+  return t;
+}
+
+// ─── Thinking ────────────────────────────────────────────────────
+let thinkStartTime = 0;
+let thinkTimerInterval = null;
+
+function onThinking(d) {
+  isThinking = d.active;
+  const badge = $('hThink');
+  const text = $('hThinkText');
+  const sec = $('thinkSec');
+  const steps = $('thinkSteps');
+  const timer = $('thinkTimer');
+
+  if (d.active) {
+    badge.classList.add('vis');
+    const round = d.round || 0;
+    const max = d.max || 8;
+    text.textContent = round > 0 ? `TUR ${round}/${max}` : 'DÜŞÜNÜYOR';
+    setBrainState('thinking');
+    showDur(true);
+
+    // Show thinking panel
+    sec.style.display = '';
+    steps.innerHTML = '';
+    addThinkStep('🔍', 'İstek analiz ediliyor...', true);
+    if (d.text) addThinkStep('💬', `"${d.text.substring(0,60)}${d.text.length>60?'...':''}"`, false);
+
+    // Chat inline indicator
+    const area = $('chatArea');
+    let inl = document.getElementById('thinkInline');
+    if (!inl) {
+      inl = document.createElement('div');
+      inl.id = 'thinkInline';
+      inl.className = 'chat-think-inline';
+      inl.innerHTML = '<span class="cti-dot"></span><span class="cti-tool">DÜŞÜNÜYOR</span><span style="color:var(--dim);font-size:9px" id="thinkInlineTime">0s</span>';
+      area.appendChild(inl);
+      area.scrollTop = area.scrollHeight;
+    }
+
+    // Timer
+    thinkStartTime = Date.now();
+    if (thinkTimerInterval) clearInterval(thinkTimerInterval);
+    thinkTimerInterval = setInterval(() => {
+      const s = ((Date.now() - thinkStartTime) / 1000).toFixed(1);
+      timer.textContent = `⏱ ${s}s`;
+      const it = document.getElementById('thinkInlineTime');
+      if (it) it.textContent = `${s}s`;
+    }, 100);
+
+  } else {
+    badge.classList.remove('vis');
+    setBrainState((voiceOn || voiceEngineActive) ? 'listening' : 'idle');
+    checkHideDur();
+
+    // Complete thinking
+    if (thinkTimerInterval) { clearInterval(thinkTimerInterval); thinkTimerInterval = null; }
+    const elapsed = ((Date.now() - thinkStartTime) / 1000).toFixed(1);
+    timer.textContent = `✅ ${elapsed}s tamamlandı`;
+    timer.style.color = 'var(--green)';
+
+    // Mark all steps done
+    steps.querySelectorAll('.ts-active').forEach(s => {
+      s.classList.remove('ts-active');
+      s.classList.add('ts-done');
+      s.querySelector('.ts-icon').textContent = '✓';
+    });
+    addThinkStep('✅', `Tamamlandı — ${elapsed}s`, false);
+
+    // Remove inline indicator
+    const inl = document.getElementById('thinkInline');
+    if (inl) inl.remove();
+
+    // Auto-hide thinking panel after 5s
+    setTimeout(() => {
+      sec.style.display = 'none';
+      timer.style.color = 'var(--amber)';
+    }, 5000);
+  }
+}
+
+function addThinkStep(icon, text, active) {
+  const steps = $('thinkSteps');
+  const div = document.createElement('div');
+  div.className = 'think-step' + (active ? ' ts-active' : '');
+  div.innerHTML = `<span class="ts-icon">${icon}</span><span class="ts-text">${text}</span>`;
+  steps.appendChild(div);
+  steps.scrollTop = steps.scrollHeight;
+}
+
+function onSpeaking(d) {
+  if (d.active) {
+    setBrainState('speaking');
+    $('dVoice').classList.add('up');
+    voiceEngineActive = true;
+  } else {
+    setBrainState(isThinking ? 'thinking' : ((voiceOn || voiceEngineActive) ? 'listening' : 'idle'));
+  }
+}
+
+// ─── Tool State ──────────────────────────────────────────────────
+function onToolState(d) {
+  const row = document.querySelector(`[data-tool="${d.name}"]`);
+  if (!row) return;
+
+  if (toolTimers[d.name]) { clearTimeout(toolTimers[d.name]); delete toolTimers[d.name]; }
+
+  row.className = 'tool-row ' + (d.state || '');
+  const st = row.querySelector('.tool-st');
+
+  // Update thinking panel with tool activity
+  const sec = $('thinkSec');
+  if (sec.style.display !== 'none') {
+    // Mark previous active step as done
+    $('thinkSteps').querySelectorAll('.ts-active').forEach(s => {
+      s.classList.remove('ts-active');
+      s.classList.add('ts-done');
+      s.querySelector('.ts-icon').textContent = '✓';
+    });
+    const toolIcons = {db_query:'🗄️', web_search:'🌐', create_word_document:'📄', create_excel_document:'📊', screen_check:'👁️', open_app:'🚀', remember_fact:'🧠', analyze_image:'🖼️'};
+    const icon = toolIcons[d.name] || '⚡';
+    if (d.state === 'done') {
+      addThinkStep(icon, `${d.name} tamamlandı`, false);
+    } else {
+      addThinkStep(icon, `${d.name} çalışıyor...`, true);
+    }
+    // Update inline indicator
+    const inl = document.getElementById('thinkInline');
+    if (inl) {
+      const toolEl = inl.querySelector('.cti-tool');
+      if (toolEl) toolEl.textContent = d.state === 'done' ? `${d.name} ✓` : `${d.name}...`;
+    }
+  }
+
+  if (d.state === 'running') {
+    if (st) st.textContent = '...';
+    showDur(true);
+    // Add to chat
+    addToolLog(d.name, 'çalışıyor');
+  } else if (d.state === 'done') {
+    if (st) st.textContent = '✓';
+    toolTimers[d.name] = setTimeout(() => { row.className = 'tool-row'; if(st) st.textContent = ''; }, 4000);
+    checkHideDur();
+    addToolLog(d.name, 'tamamlandı');
+  } else if (d.state === 'error') {
+    if (st) st.textContent = '✗';
+    toolTimers[d.name] = setTimeout(() => { row.className = 'tool-row'; if(st) st.textContent = ''; }, 4000);
+    checkHideDur();
+    addToolLog(d.name, 'hata');
+  }
+}
+
+function addToolLog(name, status) {
+  const area = $('chatArea');
+  const div = document.createElement('div');
+  div.className = 'chat-line';
+  const display = TOOL_DISPLAY[name] || name;
+  div.innerHTML = `<span class="tag tag-t">ARAÇ:</span> ${esc(display)} — ${esc(status)}`;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+// ─── Model Activity ──────────────────────────────────────────────
+function onModelActivity(d) {
+  const chip = document.querySelector(`[data-m="${d.model}"]`);
+  if (!chip) return;
+  if (d.active) chip.classList.add('active');
+  else chip.classList.remove('active');
+}
+
+function activateChip(model) {
+  document.querySelectorAll('.m-chip').forEach(c => c.classList.remove('active'));
+  if (model.includes('gemini') || model.includes('voice')) $('cGemini').classList.add('active');
+  else if (model.includes('haiku')) $('cHaiku').classList.add('active');
+  else if (model.includes('sonnet')) $('cSonnet').classList.add('active');
+  else if (model.includes('fast')) $('cFast').classList.add('active');
+}
+
+// ─── Model Switch ────────────────────────────────────────────────
+function onModelSwitch(d) {
+  const badge = $('hSwitch');
+  if (!d.model) { badge.classList.remove('vis'); return; }
+  badge.classList.add('vis');
+  const color = MODEL_COLORS[d.model] || '#4a90d9';
+  $('hSwitchDot').style.background = color;
+  $('hSwitchName').textContent = d.model.toUpperCase();
+  $('hSwitchName').style.color = color;
+  $('hSwitchReason').textContent = d.reason || '';
+  if (switchTimer) clearTimeout(switchTimer);
+  switchTimer = setTimeout(() => badge.classList.remove('vis'), 12000);
+}
+
+// ─── DUR Button ──────────────────────────────────────────────────
+function showDur(on) { $('btnDur').classList.toggle('vis', on); }
+function checkHideDur() {
+  const any = document.querySelectorAll('.tool-row.running').length > 0;
+  if (!any && !isThinking) showDur(false);
+}
+
+// ─── Audio Level (drives brain animation in real-time) ──────────
+function onAudioLevel(d) {
+  audioLevel = d.level || 0;
+  $('audioMeter').style.width = (audioLevel * 100) + '%';
+  // If we're receiving audio levels > 0, voice engine is alive
+  if (audioLevel > 0.01) {
+    voiceEngineActive = true;
+    $('dVoice').classList.add('up');
+  }
+}
+
+// ─── Notes ───────────────────────────────────────────────────────
+function addNote(d, anim = true) {
+  const el = $('notes');
+  const note = document.createElement('div');
+  note.className = 'note' + (d.priority === 'urgent' ? ' urgent' : d.priority === 'warn' ? ' warn' : '');
+  if (!anim) note.style.animation = 'none';
+  note.innerHTML = `${esc(d.text || '')}<span class="note-t">${now()}</span>`;
+  el.insertBefore(note, el.firstChild);
+  while (el.children.length > 30) el.removeChild(el.lastChild);
+}
+
+// ─── Notifications ───────────────────────────────────────────────
+function showNotif(d) {
+  const box = $('notifBox');
+  const el = document.createElement('div');
+  el.className = 'notif' + (d.priority === 'urgent' ? ' urgent' : '');
+  el.innerHTML = `<div class="notif-title">${esc(d.title || 'BİLDİRİM')}</div><div class="notif-body">${esc(d.message || '')}</div>`;
+  box.appendChild(el);
+  setTimeout(() => { el.classList.add('exit'); setTimeout(() => el.remove(), 300); }, d.duration || 5000);
+  while (box.children.length > 5) box.removeChild(box.firstChild);
+}
+
+// ─── Insights ────────────────────────────────────────────────────
+function showInsight(d) {
+  const box = $('insightBox');
+  const icons = {critical:'🔴', major:'🟡', minor:'🔵'};
+  const el = document.createElement('div');
+  el.className = 'insight';
+  el.innerHTML = `
+    <div class="insight-hdr"><span class="insight-icon">${icons[d.severity] || '🔵'}</span><span class="insight-ttl">${esc(d.title || '')}</span></div>
+    <div class="insight-body">${esc(d.summary || '')}</div>
+    ${d.source ? `<div class="insight-src">${esc(d.source)}</div>` : ''}
+  `;
+  box.appendChild(el);
+  const dur = d.severity === 'critical' ? 20000 : 12000;
+  setTimeout(() => { el.classList.add('exit'); setTimeout(() => el.remove(), 300); }, dur);
+  while (box.children.length > 5) box.removeChild(box.firstChild);
+}
+
+// ─── Cost ────────────────────────────────────────────────────────
+function onCost(d) {
+  if (d.today !== undefined) { costToday = d.today; $('costToday').textContent = '$' + costToday.toFixed(2); }
+  if (d.total !== undefined) { costTotal = d.total; $('costTotal').textContent = '$' + costTotal.toFixed(2); }
+}
+
+function updateCostEstimate(tokens, model) {
+  // Rough cost estimate per 1M tokens
+  const m = (model || '').toLowerCase();
+  let rate = 0;
+  if (m.includes('sonnet')) rate = 15; // $15/1M output tokens approx
+  else if (m.includes('haiku')) rate = 1;
+  else if (m.includes('opus')) rate = 75;
+  const est = (tokens / 1000000) * rate;
+  costToday += est;
+  costTotal += est;
+  $('costToday').textContent = '$' + costToday.toFixed(3);
+  $('costTotal').textContent = '$' + costTotal.toFixed(3);
+}
+
+// ─── Daemon Status ───────────────────────────────────────────────
+function onDaemonStatus(d) {
+  const map = {web:'dWeb', telegram:'dTg', voice:'dVoice', database:'dDb'};
+  for (const [key, id] of Object.entries(map)) {
+    const status = d[key];
+    if (!status) continue;
+    const el = $(id);
+    el.classList.remove('up','deg','down');
+    if (status === 'ok') {
+      el.classList.add('up');
+      if (key === 'voice') {
+        voiceEngineActive = true;
+        setBrainState('listening');  // Voice engine active = brain listening
+      }
+    }
+    else if (status === 'degraded') el.classList.add('deg');
+    else if (status === 'down') el.classList.add('down');
+  }
+  // Health widget
+  const healthMap = {
+    latency: {dot:'hLatency', val:'hLatencyV', ok:'Düşük', bad:'Yüksek'},
+    database: {dot:'hDb', val:'hDbV', ok:'Bağlı', bad:'Sorun'},
+  };
+  for (const [key, cfg] of Object.entries(healthMap)) {
+    const status = d[key];
+    if (!status) continue;
+    $(cfg.dot).className = 'h-dot ' + (status === 'ok' ? 'h-ok' : status === 'degraded' ? 'h-warn' : 'h-err');
+    $(cfg.val).textContent = status === 'ok' ? cfg.ok : cfg.bad;
+  }
+}
+
+function onEnvStatus(d) {
+  // Traffic light style
+  if (d.anthropic !== undefined) {
+    $('hAnthro').className = 'h-dot ' + (d.anthropic ? 'h-ok' : 'h-err');
+    $('hAnthroV').textContent = d.anthropic ? 'Aktif' : 'Sorun';
+  }
+  if (d.database !== undefined) {
+    $('hDb').className = 'h-dot ' + (d.database ? 'h-ok' : 'h-err');
+    $('hDbV').textContent = d.database ? 'Bağlı' : 'Yok';
+  }
+  if (d.telegram !== undefined) {
+    $('hTg').className = 'h-dot ' + (d.telegram ? 'h-ok' : 'h-err');
+    $('hTgV').textContent = d.telegram ? 'Aktif' : 'Yok';
+  }
+}
+
+// ─── Telegram Monitor ─────────────────────────────────────────
+function onTelegramMention(d) {
+  // Prominent notification
+  showNotif({
+    title: 'TELEGRAM ETİKET',
+    message: (d.sender || 'Biri') + ' (' + (d.chat_name || '?') + '): ' + (d.text || '').slice(0, 120),
+    priority: 'urgent',
+    duration: 10000,
+  });
+  // Also add as urgent note
+  addNote({
+    text: '[TG] ' + (d.sender || 'Biri') + ' seni etiketledi: ' + (d.text || '').slice(0, 80),
+    priority: 'urgent',
+  });
+}
+
+function onTelegramMessage(d) {
+  // Only show in notes for mentions (non-mention messages are just tracked)
+  if (d.is_mention) return; // Already handled by onTelegramMention
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TOOL RACK
+// ═══════════════════════════════════════════════════════════════
+function buildToolRack(serverTools) {
+  const rack = $('toolRack');
+  rack.innerHTML = '';
+
+  for (const [cat, cfg] of Object.entries(TOOL_CATS)) {
+    const visTools = cfg.tools.filter(t => serverTools.includes(t));
+    if (!visTools.length) continue;
+
+    const catDiv = document.createElement('div');
+    catDiv.className = 'tool-cat';
+    catDiv.innerHTML = `<div class="tool-cat-hdr" style="color:${cfg.color}">${cat}</div>`;
+
+    for (const t of visTools) {
+      const row = document.createElement('div');
+      row.className = 'tool-row';
+      row.setAttribute('data-tool', t);
+      row.innerHTML = `<div class="tool-dot" style="color:${cfg.color}"></div><span class="tool-nm">${TOOL_DISPLAY[t] || t}</span><span class="tool-st"></span>`;
+      catDiv.appendChild(row);
+    }
+    rack.appendChild(catDiv);
+  }
+
+  // Capabilities
+  const caps = $('caps');
+  const capMap = {
+    'DB Sorgu': serverTools.includes('db_query'),
+    'Web Arama': serverTools.includes('web_search'),
+    'Uygulama': serverTools.includes('open_app'),
+    'Dosya': serverTools.includes('list_files'),
+    'Ses Kontrol': serverTools.includes('computer_settings'),
+    'URL Aç': serverTools.includes('open_url'),
+    'Telegram': true,
+    'Alert': true,
+  };
+  caps.innerHTML = Object.entries(capMap).map(([name, on]) =>
+    `<span class="cap-tag ${on ? 'on' : 'off'}">${name}</span>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NEURAL BRAIN — Advanced Canvas2D Animation
+// ═══════════════════════════════════════════════════════════════
+const canvas = $('brainCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, cx, cy, frame = 0;
+let neurons = [], particles = [], sparks = [], pulseRings = [], waves = [];
+
+const CORE_R_RATIO = 0.09;
+const INNER_R_RATIO = 0.22;
+const OUTER_R_RATIO = 0.36;
+const N_INNER = 8;
+const N_OUTER = 10;
+const MAX_PARTICLES = 80;
+
+function resizeBrain() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  W = rect.width; H = rect.height;
+  cx = W / 2; cy = H / 2;
+  initNeurons();
+}
+
+function initNeurons() {
+  neurons = [];
+  const r1 = Math.min(W, H) * INNER_R_RATIO;
+  const r2 = Math.min(W, H) * OUTER_R_RATIO;
+  for (let i = 0; i < N_INNER; i++) {
+    const a = (Math.PI * 2 / N_INNER) * i;
+    neurons.push({ring:'inner', angle:a, baseR:r1, r:4, phase: Math.random() * Math.PI * 2});
+  }
+  for (let i = 0; i < N_OUTER; i++) {
+    const a = (Math.PI * 2 / N_OUTER) * i + 0.31;
+    neurons.push({ring:'outer', angle:a, baseR:r2, r:2.8, phase: Math.random() * Math.PI * 2});
+  }
+}
+
+function setBrainState(s) {
+  brainState = s;
+  const lbl = $('brainLabel');
+  lbl.className = 'brain-label ' + s;
+  const labels = {idle:'HAZIR', listening:'DİNLİYOR', thinking:'DÜŞÜNÜYOR', speaking:'KONUŞUYOR'};
+  lbl.textContent = labels[s] || s.toUpperCase();
+}
+
+function drawBrain() {
+  ctx.clearRect(0, 0, W, H);
+  frame++;
+  const t = frame * 0.018;
+
+  // State params
+  let cr, cg, cb, intensity, spinSpeed, pRate, sparkRate;
+  if (brainState === 'thinking') {
+    cr=212; cg=160; cb=23; intensity=0.95+Math.sin(t*3)*0.05; spinSpeed=0.009; pRate=0.35; sparkRate=0.18;
+  } else if (brainState === 'speaking') {
+    cr=0; cg=212; cb=255; intensity=0.7+audioLevel*0.3; spinSpeed=0.004; pRate=0.15+audioLevel*0.15; sparkRate=0;
+  } else if (brainState === 'listening') {
+    cr=34; cg=211; cb=238; intensity=0.55+Math.sin(t*2)*0.12; spinSpeed=0.003; pRate=0.06; sparkRate=0;
+  } else {
+    cr=74; cg=144; cb=217; intensity=0.35+Math.sin(t)*0.05+Math.sin(t*0.6)*0.03; spinSpeed=0.0012; pRate=0.025; sparkRate=0;
+  }
+
+  const gc = (a) => `rgba(${cr},${cg},${cb},${Math.max(0,Math.min(1,a)).toFixed(3)})`;
+
+  // Rotate neurons
+  neurons.forEach(n => {
+    const dir = n.ring === 'inner' ? 1 : -0.65;
+    n.angle += spinSpeed * dir;
+    n.x = cx + Math.cos(n.angle) * n.baseR;
+    n.y = cy + Math.sin(n.angle) * n.baseR;
+  });
+
+  const inner = neurons.filter(n => n.ring === 'inner');
+  const outer = neurons.filter(n => n.ring === 'outer');
+
+  // ── Background grid ──
+  ctx.fillStyle = gc(0.025 * intensity);
+  for (let gx = 0; gx < W; gx += 32) {
+    for (let gy = 0; gy < H; gy += 32) {
+      const ox = Math.sin(t * 0.4 + gx * 0.008) * 2.5;
+      const oy = Math.cos(t * 0.35 + gy * 0.01) * 2.5;
+      ctx.beginPath(); ctx.arc(gx + ox, gy + oy, 0.7, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // ── Speaking: concentric wave rings ──
+  if (brainState === 'speaking' && audioLevel > 0.12 && frame % 10 === 0 && waves.length < 6) {
+    waves.push({r: Math.min(W,H) * CORE_R_RATIO, maxR: Math.min(W,H) * 0.42, life: 45});
+  }
+  waves = waves.filter(w => {
+    w.r += 2 + audioLevel * 2.5;
+    w.life--;
+    if (w.life <= 0 || w.r >= w.maxR) return false;
+    const a = (w.life / 45) * 0.3 * intensity;
+    ctx.strokeStyle = gc(a);
+    ctx.lineWidth = 2 - (w.r / w.maxR) * 1.2;
+    ctx.beginPath(); ctx.arc(cx, cy, w.r, 0, Math.PI * 2); ctx.stroke();
+    return true;
+  });
+
+  // ── Synaptic connections: center → inner (bezier in thinking) ──
+  inner.forEach((n, i) => {
+    if (brainState === 'thinking') {
+      const pulse = Math.sin(t * 4 + i * 0.9) * 0.5 + 0.5;
+      const a = (0.12 + 0.5 * pulse) * intensity;
+      const w = pulse > 0.55 ? 2.2 : 0.8;
+      const cpOff = Math.sin(t * 3 + i * 1.2) * 18;
+      const mx = (cx + n.x) / 2 + cpOff;
+      const my = (cy + n.y) / 2 - cpOff;
+      ctx.strokeStyle = gc(a);
+      ctx.lineWidth = w;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.quadraticCurveTo(mx, my, n.x, n.y); ctx.stroke();
+    } else if (brainState === 'speaking') {
+      const wave = Math.sin(t * 2 + i * 0.7) * 0.5 + 0.5;
+      const a = (0.08 + 0.2 * wave + audioLevel * 0.15) * intensity;
+      ctx.strokeStyle = gc(a);
+      ctx.lineWidth = 0.8 + audioLevel * 1.2;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(n.x, n.y); ctx.stroke();
+    } else {
+      const breathe = Math.sin(t * 0.8 + i * 0.4) * 0.5 + 0.5;
+      ctx.strokeStyle = gc((0.04 + 0.04 * breathe) * intensity);
+      ctx.lineWidth = 0.6;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(n.x, n.y); ctx.stroke();
+    }
+  });
+
+  // ── Inner → outer connections ──
+  outer.forEach((n, i) => {
+    const src = inner[i % N_INNER];
+    let a = 0.04 * intensity;
+    if (brainState === 'thinking') a = (0.04 + 0.18 * Math.max(0, Math.sin(t * 2.5 + i))) * intensity;
+    ctx.strokeStyle = gc(a);
+    ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.moveTo(src.x, src.y); ctx.lineTo(n.x, n.y); ctx.stroke();
+  });
+
+  // ── Inner mesh ──
+  for (let i = 0; i < N_INNER; i++) {
+    const j = (i + 1) % N_INNER;
+    ctx.strokeStyle = gc(0.05 * intensity);
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(inner[i].x, inner[i].y); ctx.lineTo(inner[j].x, inner[j].y); ctx.stroke();
+  }
+
+  // ── Electromagnetic sparks (thinking) ──
+  if (brainState === 'thinking' && frame % 3 === 0 && sparks.length < 6) {
+    const si = Math.floor(Math.random() * N_INNER);
+    const oi = Math.floor(Math.random() * N_OUTER);
+    sparks.push({
+      x1: inner[si].x, y1: inner[si].y,
+      x2: outer[oi].x, y2: outer[oi].y,
+      life: 15, maxLife: 15,
+    });
+  }
+  sparks = sparks.filter(s => {
+    s.life--;
+    if (s.life <= 0) return false;
+    const frac = s.life / s.maxLife;
+    const a = 0.85 * frac;
+    ctx.strokeStyle = `rgba(255,220,80,${a.toFixed(3)})`;
+    ctx.lineWidth = 1.2 + frac;
+    ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
+    // Endpoint glow
+    ctx.beginPath(); ctx.arc(s.x2, s.y2, 3 * frac, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,240,120,${(a * 0.6).toFixed(3)})`; ctx.fill();
+    return true;
+  });
+
+  // ── Spawn particles ──
+  if (Math.random() < pRate && particles.length < MAX_PARTICLES) {
+    if (brainState === 'thinking') {
+      const n = inner[Math.floor(Math.random() * N_INNER)];
+      const angle = n.angle + (Math.random() - 0.5) * 0.8;
+      const speed = 1.5 + Math.random() * 2.5;
+      particles.push({x:n.x, y:n.y, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed, life:30+Math.random()*20, maxLife:50, r:1.5+Math.random(), type:'streak'});
+    } else if (brainState === 'speaking') {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = audioLevel * 2.5 + 0.5;
+      particles.push({x:cx, y:cy, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed, life:45+Math.random()*20, maxLife:65, r:1+audioLevel*2, type:'wave'});
+    } else {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 20 + Math.random() * Math.min(W,H) * INNER_R_RATIO;
+      const dir = angle + Math.PI * 0.5 + (Math.random() - 0.5) * 0.5;
+      const speed = 0.1 + Math.random() * 0.2;
+      particles.push({x:cx+dist*Math.cos(angle), y:cy+dist*Math.sin(angle), vx:Math.cos(dir)*speed, vy:Math.sin(dir)*speed, life:200+Math.random()*100, maxLife:300, r:1.3, type:'drift'});
+    }
+  }
+
+  // ── Update & draw particles ──
+  particles = particles.filter(p => {
+    p.x += p.vx; p.y += p.vy; p.life--;
+    if (p.type === 'drift') { p.vx *= 0.998; p.vy *= 0.998; }
+    if (p.life <= 0) return false;
+    const frac = p.life / p.maxLife;
+    const a = 0.7 * frac * intensity;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * frac, 0, Math.PI * 2);
+    if (p.type === 'streak') ctx.fillStyle = `rgba(255,200,60,${a.toFixed(3)})`;
+    else if (p.type === 'wave') ctx.fillStyle = gc(a);
+    else ctx.fillStyle = gc(a * 0.5);
+    ctx.fill();
+    return true;
+  });
+
+  // ── Pulse rings ──
+  const maxPulse = Math.min(W, H) * INNER_R_RATIO * 1.3;
+  if (Math.random() < (brainState === 'thinking' ? 0.1 : brainState === 'speaking' ? 0.05 : 0.015) && pulseRings.length < 5) {
+    pulseRings.push(5);
+  }
+  pulseRings = pulseRings.map(r => r + (brainState === 'thinking' ? 2 : brainState === 'speaking' ? 1.2 : 0.5)).filter(r => {
+    if (r >= maxPulse) return false;
+    const a = 0.5 * (1 - r / maxPulse) * intensity;
+    ctx.strokeStyle = gc(a);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    return true;
+  });
+
+  // ── Outer neurons ──
+  outer.forEach((n, i) => {
+    const fire = brainState === 'thinking' ? Math.max(0, Math.sin(t * 3 + i * 1.5)) : 0;
+    const a = (0.3 + 0.7 * fire) * intensity;
+    ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    ctx.fillStyle = gc(a); ctx.fill();
+    if (fire > 0.3) {
+      ctx.beginPath(); ctx.arc(n.x, n.y, n.r * 3, 0, Math.PI * 2);
+      ctx.fillStyle = gc(0.08 * fire); ctx.fill();
+    }
+  });
+
+  // ── Inner neurons ──
+  inner.forEach((n, i) => {
+    let fire;
+    if (brainState === 'thinking') fire = Math.max(0, Math.sin(t * 4 + i * 1.1));
+    else if (brainState === 'speaking') fire = Math.max(0, Math.sin(t * 2 + i * 0.8)) * 0.5 + audioLevel * 0.3;
+    else fire = Math.max(0, Math.sin(t * 0.8 + i * 0.6)) * 0.15;
+
+    const baseR = brainState === 'thinking' ? 6 : 4.5;
+
+    // Glow
+    if (fire > 0.2) {
+      const glowR = baseR * (2 + fire * 3);
+      ctx.beginPath(); ctx.arc(n.x, n.y, glowR, 0, Math.PI * 2);
+      ctx.fillStyle = gc(0.06 * fire * intensity); ctx.fill();
+    }
+
+    const a = (0.4 + 0.6 * fire) * intensity;
+    ctx.beginPath(); ctx.arc(n.x, n.y, baseR, 0, Math.PI * 2);
+    ctx.fillStyle = gc(a); ctx.fill();
+  });
+
+  // ── Central orb ──
+  const orbR = Math.min(W, H) * CORE_R_RATIO;
+  const scale = 1 + (brainState === 'speaking' ? audioLevel * 0.12 : brainState === 'thinking' ? Math.sin(t * 2) * 0.04 : Math.sin(t) * 0.025);
+
+  // Outer glow
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, orbR * scale * 2.2);
+  grad.addColorStop(0, gc(0.15 * intensity));
+  grad.addColorStop(1, gc(0));
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(cx, cy, orbR * scale * 2.2, 0, Math.PI * 2); ctx.fill();
+
+  // Core
+  const grad2 = ctx.createRadialGradient(cx - orbR * 0.25, cy - orbR * 0.25, 0, cx, cy, orbR * scale);
+  grad2.addColorStop(0, '#1a2d45');
+  grad2.addColorStop(1, '#0a1320');
+  ctx.fillStyle = grad2;
+  ctx.beginPath(); ctx.arc(cx, cy, orbR * scale, 0, Math.PI * 2); ctx.fill();
+
+  // Orb ring
+  ctx.strokeStyle = gc(0.25 * intensity);
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(cx, cy, orbR * scale + 3, 0, Math.PI * 2); ctx.stroke();
+
+  // Second ring
+  ctx.strokeStyle = gc(0.08 * intensity);
+  ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(cx, cy, orbR * scale + 8, 0, Math.PI * 2); ctx.stroke();
+
+  // "MAZLUM" text
+  ctx.fillStyle = gc(0.6 * intensity);
+  ctx.font = `600 ${Math.max(8, orbR * 0.32)}px 'Inter'`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('MAZLUM', cx, cy);
+
+  // ── Thinking: progress arc + orbiting comets ──
+  if (brainState === 'thinking') {
+    const progress = (Math.sin(t * 0.8) * 0.5 + 0.5);
+    const progR = orbR * scale + 14;
+    ctx.strokeStyle = 'rgba(0,200,104,0.4)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, progR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke();
+
+    // Orbiting comets with trails
+    const cometR = Math.min(W, H) * INNER_R_RATIO + 16;
+    for (let i = 0; i < 3; i++) {
+      const angle = (frame * 0.06 + i * (Math.PI * 2 / 3));
+      const px = cx + cometR * Math.cos(angle);
+      const py = cy + cometR * Math.sin(angle);
+
+      // Comet head
+      ctx.beginPath(); ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#d4a017'; ctx.fill();
+      ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(212,160,23,0.15)'; ctx.fill();
+
+      // Trail
+      for (let j = 1; j < 8; j++) {
+        const ta = angle - j * 0.08;
+        const tx = cx + cometR * Math.cos(ta);
+        const ty = cy + cometR * Math.sin(ta);
+        const trailA = Math.max(0, 0.5 - j * 0.07);
+        ctx.beginPath(); ctx.arc(tx, ty, 2 - j * 0.2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(212,160,23,${trailA.toFixed(3)})`; ctx.fill();
+      }
+    }
+  }
+
+  requestAnimationFrame(drawBrain);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VOICE (Web Speech API)
+// ═══════════════════════════════════════════════════════════════
+function toggleVoice() {
+  voiceOn = !voiceOn;
+  $('btnMic').classList.toggle('on', voiceOn);
+  if (voiceOn) startListening(); else stopListening();
+}
+
+function startListening() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    onTranscript({role:'system', text:'Tarayıcı ses tanıma desteklemiyor.'});
+    voiceOn = false; $('btnMic').classList.remove('on');
+    return;
+  }
+  recognition = new SR();
+  recognition.lang = 'tr-TR';
+  recognition.interimResults = false;
+  recognition.continuous = true;
+
+  recognition.onresult = e => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        const t = e.results[i][0].transcript.trim();
+        if (t) send('message', {text: t});
+      }
+    }
+  };
+  recognition.onend = () => { if (voiceOn) try { recognition.start(); } catch(e) {} };
+  recognition.onerror = e => {
+    if (e.error === 'not-allowed') {
+      onTranscript({role:'system', text:'Mikrofon izni gerekli.'});
+      voiceOn = false; $('btnMic').classList.remove('on');
+    }
+  };
+  try { recognition.start(); setBrainState('listening'); } catch(e) {}
+}
+
+function stopListening() {
+  if (recognition) try { recognition.stop(); } catch(e) {}
+  setBrainState('idle');
+}
+
+function speakText(text) {
+  const utt = new SpeechSynthesisUtterance(text.length > 400 ? text.slice(0, 400) + '...' : text);
+  utt.lang = 'tr-TR'; utt.rate = 1.05;
+  const voices = speechSynthesis.getVoices();
+  const tr = voices.find(v => v.lang.startsWith('tr'));
+  if (tr) utt.voice = tr;
+  setBrainState('speaking');
+  utt.onend = () => setBrainState(voiceOn ? 'listening' : 'idle');
+  speechSynthesis.speak(utt);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INPUT & KEYBOARD
+// ═══════════════════════════════════════════════════════════════
+function sendMessage() {
+  const input = $('msgInput');
+  const text = input.value.trim();
+  if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+  send('message', {text});
+  input.value = '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  // Input handlers
+  $('msgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+  $('btnSend').addEventListener('click', sendMessage);
+  $('btnMic').addEventListener('click', toggleVoice);
+  $('btnSession').addEventListener('click', () => location.reload());
+  $('btnDur').addEventListener('click', () => {
+    send('cancel');
+    showDur(false);
+    isThinking = false;
+    $('hThink').classList.remove('vis');
+    setBrainState(voiceOn ? 'listening' : 'idle');
+    showNotif({title:'İPTAL', message:'İşlem iptal edildi.', priority:'urgent', duration:3000});
+  });
+  $('btnScan').addEventListener('click', () => {
+    send('request_env_status');
+    $('btnScan').textContent = '...';
+    $('btnScan').disabled = true;
+    setTimeout(() => { $('btnScan').textContent = 'TARA'; $('btnScan').disabled = false; }, 3000);
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.key === 'm' && !e.ctrlKey && !e.metaKey && document.activeElement !== $('msgInput')) {
+      e.preventDefault();
+      toggleVoice();
+    }
+    if (e.key === 'Escape') {
+      if (isThinking) {
+        send('cancel');
+        showDur(false);
+        isThinking = false;
+        $('hThink').classList.remove('vis');
+        setBrainState(voiceOn ? 'listening' : 'idle');
+      }
+    }
+    if (e.key === '/' && document.activeElement !== $('msgInput')) {
+      e.preventDefault();
+      $('msgInput').focus();
+    }
+  });
+
+  // Brain init
+  resizeBrain();
+  window.addEventListener('resize', resizeBrain);
+  drawBrain();
+
+  // WebSocket
+  connectWS();
+
+  // Welcome note
+  setTimeout(() => {
+    addNote({text:'Hoş geldin — MAZLUM hazır. Yazarak veya konuşarak iletişim kurabilirsin.', priority:'normal'}, true);
+  }, 600);
+
+  // Set initial health
+  $('hAnthro').className = 'h-dot h-ok'; $('hAnthroV').textContent = 'Aktif';
+  $('dWeb').classList.add('up');
+});
+</script>
+</body>
+</html>

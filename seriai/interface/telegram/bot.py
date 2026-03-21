@@ -1,0 +1,231 @@
+"""
+Telegram Bot API integration.
+Production-primary method: native Bot API, not GUI automation.
+Replaces the old PyAutoGUI + clipboard + window focus approach.
+
+Features:
+- Incoming message processing
+- Auth / identity mapping
+- Rate control
+- Command handling
+- CRM/DB tool access via brain
+- Escalation / human handoff
+- Fail-safe timeouts
+"""
+import logging
+import asyncio
+from typing import Optional
+
+log = logging.getLogger("seriai.interface.telegram")
+
+
+class TelegramBot:
+    """
+    Telegram Bot API client.
+    Uses python-telegram-bot library for reliable message handling.
+    """
+
+    def __init__(self, config, brain):
+        self.config = config
+        self.brain = brain
+        self._app = None
+        self._running = False
+
+    async def start(self):
+        """Start the Telegram bot."""
+        if not self.config.telegram.bot_token:
+            log.warning("Telegram bot token not configured. Skipping.")
+            return
+
+        try:
+            from telegram import Update
+            from telegram.ext import (
+                Application,
+                CommandHandler,
+                MessageHandler,
+                filters,
+            )
+
+            self._app = (
+                Application.builder()
+                .token(self.config.telegram.bot_token)
+                .build()
+            )
+
+            # Command handlers
+            self._app.add_handler(CommandHandler("start", self._cmd_start))
+            self._app.add_handler(CommandHandler("help", self._cmd_help))
+            self._app.add_handler(CommandHandler("status", self._cmd_status))
+
+            # Message handler (text messages)
+            self._app.add_handler(
+                MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_message)
+            )
+
+            # Error handler
+            self._app.add_error_handler(self._handle_error)
+
+            self._running = True
+
+            if self.config.telegram.use_polling:
+                log.info("Telegram bot starting (polling mode)...")
+                await self._app.initialize()
+                await self._app.start()
+                await self._app.updater.start_polling(drop_pending_updates=True)
+            else:
+                # Webhook mode not yet implemented — fall back to polling with warning
+                log.warning("Webhook mode henüz implement edilmedi. Polling moduna düşülüyor.")
+                await self._app.initialize()
+                await self._app.start()
+                await self._app.updater.start_polling(drop_pending_updates=True)
+
+        except ImportError:
+            log.error("python-telegram-bot not installed. Run: pip install python-telegram-bot")
+        except Exception as e:
+            log.error(f"Telegram bot start failed: {e}")
+
+    async def stop(self):
+        """Stop the Telegram bot gracefully."""
+        if self._app and self._running:
+            try:
+                await self._app.updater.stop()
+                await self._app.stop()
+                await self._app.shutdown()
+                self._running = False
+                log.info("Telegram bot stopped.")
+            except Exception as e:
+                log.error(f"Telegram stop error: {e}")
+
+    def _is_authorized(self, user_id: int) -> bool:
+        """Check if user is authorized."""
+        if not self.config.telegram.allowed_user_ids:
+            return True  # no whitelist = allow all
+        return user_id in self.config.telegram.allowed_user_ids
+
+    async def _cmd_start(self, update, context):
+        """Handle /start command."""
+        if not update.message:
+            return
+        if not self._is_authorized(update.effective_user.id):
+            await update.message.reply_text("Yetkiniz bulunmuyor.")
+            return
+        await update.message.reply_text(
+            "MAZLUM aktif. Sorularınızı yazabilirsiniz.\n"
+            "/help - Komutlar\n"
+            "/status - Sistem durumu"
+        )
+
+    async def _cmd_help(self, update, context):
+        """Handle /help command."""
+        if not update.message:
+            return
+        if not self._is_authorized(update.effective_user.id):
+            await update.message.reply_text("Yetkiniz bulunmuyor.")
+            return
+        await update.message.reply_text(
+            "Komutlar:\n"
+            "/start - Başlat\n"
+            "/help - Yardım\n"
+            "/status - Durum\n\n"
+            "Herhangi bir metin mesajı yazarak soru sorabilirsiniz."
+        )
+
+    async def _cmd_status(self, update, context):
+        """Handle /status command."""
+        if not update.message:
+            return
+        if not self._is_authorized(update.effective_user.id):
+            await update.message.reply_text("Yetkiniz bulunmuyor.")
+            return
+        mem_stats = self.brain.memory.stats()
+        tools = self.brain.tools.list_tools()
+        await update.message.reply_text(
+            f"MAZLUM Durum:\n"
+            f"Araç sayısı: {len(tools)}\n"
+            f"Bellek: {sum(mem_stats.values())} kayıt\n"
+            f"Model: {self.brain.config.models.cognition_model}"
+        )
+
+    async def _handle_message(self, update, context):
+        """Handle incoming text messages."""
+        if not update.message:
+            return  # Edited message, channel post, etc.
+
+        user_id = update.effective_user.id
+
+        if not self._is_authorized(user_id):
+            await update.message.reply_text("Yetkiniz bulunmuyor.")
+            return
+
+        text = update.message.text
+        if not text:
+            return
+
+        log.info(f"Telegram msg from {user_id}: {text[:80]}")
+
+        try:
+            from telegram.constants import ChatAction
+
+            # Show "typing..." immediately
+            await update.message.chat.send_action(ChatAction.TYPING)
+
+            # Start periodic typing indicator (expires every ~5s, so resend every 4s)
+            typing_active = True
+
+            async def keep_typing():
+                while typing_active:
+                    await asyncio.sleep(4)
+                    if typing_active:
+                        try:
+                            await update.message.chat.send_action(ChatAction.TYPING)
+                        except Exception:
+                            break
+
+            typing_task = asyncio.create_task(keep_typing())
+
+            try:
+                # Process through brain (with timeout to prevent indefinite blocking)
+                loop = asyncio.get_running_loop()
+                response = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        None,
+                        lambda: self.brain.process(
+                            user_text=text,
+                            context={
+                                "source": "telegram",
+                                "user_id": user_id,
+                                "username": update.effective_user.username or "",
+                            },
+                        ),
+                    ),
+                    timeout=60.0,
+                )
+            finally:
+                # Stop typing indicator
+                typing_active = False
+                typing_task.cancel()
+                try:
+                    await typing_task
+                except asyncio.CancelledError:
+                    pass
+
+            # Send response (split if too long)
+            reply = response.text
+            max_len = self.config.telegram.max_message_length
+            if len(reply) <= max_len:
+                await update.message.reply_text(reply)
+            else:
+                # Split into chunks
+                for i in range(0, len(reply), max_len):
+                    await update.message.reply_text(reply[i:i + max_len])
+
+        except asyncio.TimeoutError:
+            log.warning(f"Telegram brain timeout (60s) for user {user_id}")
+            await update.message.reply_text("İstek zaman aşımına uğradı. Tekrar deneyin.")
+        except Exception as e:
+            log.error(f"Telegram message handling failed: {e}")
+            await update.message.reply_text("Bir hata oluştu. Lütfen tekrar deneyin.")
+
+    async def _handle_error(self, update, context):
+        """Handle errors."""
+        log.error(f"Telegram error: {context.error}")
