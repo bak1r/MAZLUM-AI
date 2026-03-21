@@ -188,6 +188,17 @@ class VoiceEngine:
                 }
             },
             {
+                "name": "open_url",
+                "description": "URL'yi tarayıcıda aç. YouTube, Google, web siteleri için BUNU kullan, open_app DEĞİL.",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "url": {"type": "STRING", "description": "Açılacak URL (https://...)"}
+                    },
+                    "required": ["url"]
+                }
+            },
+            {
                 "name": "computer_settings",
                 "description": "Bilgisayar ayarları: ses, parlaklık, ekran görüntüsü.",
                 "parameters": {
@@ -430,6 +441,15 @@ class VoiceEngine:
                 from seriai.tools.desktop import open_app as _desktop_open_app
                 result_dict = await loop.run_in_executor(None, lambda: _desktop_open_app(app_name=app))
                 result = result_dict.get("result", result_dict.get("error", str(result_dict)))
+
+            elif name == "open_url":
+                url = args.get("url", "")
+                if url:
+                    from seriai.tools.desktop import open_url as _desktop_open_url
+                    result_dict = await loop.run_in_executor(None, lambda: _desktop_open_url(url=url))
+                    result = result_dict.get("result", result_dict.get("error", str(result_dict)))
+                else:
+                    result = "URL belirtilmedi."
 
             elif name == "computer_settings":
                 action = args.get("action", "")
