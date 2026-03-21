@@ -455,6 +455,186 @@ WHERE ba.status = 1
 GROUP BY g.id, g.name ORDER BY bakiye DESC
 ```
 
+## Muhasebe Sorun Giderme ve Fark Analizi
+
+### Panel vs Excel Farkı
+- **Excel en doğru kaynak kabul edilir** — muhasebeciler Excel'e güvenir
+- Panel bazen eksik kayıt gösterebilir (girilmeyi unutulan işlemler, teknik hatalar)
+- Farklar eninde sonunda teknik ekip tarafından düzeltilir ama bazı köklü bozukluklar keşfedilmeden kalabiliyor
+- MAZLUM'un rolü: DB'den gerçek rakamları hesaplayıp Excel/Panel ile karşılaştırma yapabilmek
+
+### Net Kasa Farkı Çıktığında MAZLUM Ne Yapmalı?
+1. DB'den doğru net kasayı hesapla (company_amount toplamı)
+2. Fark varsa olası nedenleri kontrol et:
+
+```sql
+-- 1. Callback'siz onaylı işlemler (site bilmiyordur)
+SELECT COUNT(*), COALESCE(SUM(amount),0) FROM payment_transactions
+WHERE status = 1 AND callback_status = false AND site_id = ?
+AND created_at BETWEEN ? AND ?
+
+-- 2. Revert edilmiş other_transactions
+SELECT * FROM other_transactions
+WHERE is_reverted = true AND created_at BETWEEN ? AND ?
+
+-- 3. Manuel yatırımlar (callback'siz olabilir)
+SELECT COUNT(*), SUM(amount) FROM payment_transactions pt
+WHERE pt.status = 1 AND site_id = ?
+AND EXISTS (
+    SELECT 1 FROM payment_transactions_state pts
+    WHERE pts.transaction_id = pt.id AND pts.action = 'Manuel Yatırım Eklendi.'
+)
+
+-- 4. Şirket teslimat toplamı (USDT olarak gönderilen)
+SELECT COALESCE(SUM(amount),0) FROM other_transactions
+WHERE transaction_process_type = 3 AND is_reverted = false
+AND created_at BETWEEN ? AND ?
+
+-- 5. Takviye giriş/çıkışları
+SELECT
+    SUM(CASE WHEN transaction_process_type=0 THEN amount ELSE 0 END) as finans_takviye,
+    SUM(CASE WHEN transaction_process_type=1 THEN amount ELSE 0 END) as takviye_dus,
+    SUM(CASE WHEN transaction_process_type=2 THEN amount ELSE 0 END) as sirket_takviye
+FROM other_transactions WHERE is_reverted = false AND created_at BETWEEN ? AND ?
+```
+
+3. Bulunan farkları listele ve muhtemel nedeni açıkla
+4. Bulamazsa → "Banka komisyonu, EFT gecikmesi veya sistem dışı manuel işlem olabilir" diye yönlendir
+
+### Site Mutabakatı (Reconciliation)
+- Site alacağı = `SUM(company_amount)` (onaylı yatırımlardan)
+- Site borcu = Çekim toplamı + Şirket teslimatı (USDT gönderimi)
+- **Teslimat genelde USDT (Tether) ile yapılır** — kripto olarak gönderilir, txid karşıya atılır
+- Bazen nakit teslimat da yapılır (daha karmaşık)
+- other_transactions tip=3 (şirket teslimat) = raporda çekim gibi düşer
+
+```sql
+-- Site mutabakat özeti
+SELECT s.name,
+    COALESCE(SUM(CASE WHEN pt.payment_type=1 AND pt.status=1 THEN pt.company_amount END), 0) as site_alacak,
+    COALESCE(SUM(CASE WHEN pt.payment_type=0 AND pt.status=1 THEN pt.amount END), 0) as cekim_toplam,
+    COALESCE((SELECT SUM(ot.amount) FROM other_transactions ot
+        WHERE ot.transaction_process_type=3 AND ot.is_reverted=false
+        AND ot.created_at BETWEEN ? AND ?), 0) as usdt_teslimat
+FROM payment_transactions pt
+JOIN sites s ON pt.site_id = s.id
+WHERE pt.created_at BETWEEN ? AND ? AND pt.deleted_at IS NULL
+GROUP BY s.id, s.name
+ORDER BY site_alacak DESC
+```
+
+### Banka Bakiye Farkı ve Kayma Formülü
+- **Sık oluyor** — sistemdeki balance ile teorik bakiye tutmayabiliyor
+- Nedenler: EFT gecikmesi, banka komisyonu, manuel işlemler, hesap hataları
+- Bu farkı tespit etmek için aşağıdaki formül kullanılır:
+
+**Terimler:**
+- `t_yatirim` = Toplam onaylı yatırım (SUM(amount) WHERE payment_type=1 AND status=1)
+- `t_cekim` = Toplam onaylı çekim (SUM(amount) WHERE payment_type=0 AND status=1)
+- `group_comission` = Grup komisyon oranı (groups.commission, ör: 0.0225)
+- `site_comission` = Site komisyon oranı (sites.commission, ör: 0.05)
+- `finans_takviye` = other_transactions tip=0 toplamı (revert edilmemiş)
+- `cekilen_komisyon` = other_transactions tip=4 toplamı (grup hakediş çekimi)
+- `p_cekilen_komisyon` = other_transactions tip=5 toplamı (provider hakediş çekimi)
+- `sirket_takviye` = other_transactions tip=2 toplamı
+- `yapilan_teslimat` = other_transactions tip=3 toplamı (USDT teslimat)
+- `actual_balance` = bank_accounts.balance toplamı (aktif hesaplar)
+
+**Hesaplanan Değerler (kayıtlı sütunlardan — oran değişse bile doğru kalır):**
+
+KRİTİK: Komisyon oranları zamanla değişebilir. Bu yüzden `t_yatirim × oran` ile hesaplama YANLIŞ sonuç verir. Her işlemin kendi group_fee, provider_fee, company_amount değeri o anki oranla hesaplanmış ve kaydedilmiştir. HER ZAMAN kayıtlı sütun değerlerini kullan.
+
+- `t_group_fee` = `SUM(group_fee)` WHERE payment_type=1 AND status=1
+- `t_provider_fee` = `SUM(provider_fee)` WHERE payment_type=1 AND status=1
+- `t_toplam_komisyon` = `t_group_fee + t_provider_fee`
+- `t_company_amount` = `SUM(company_amount)` WHERE payment_type=1 AND status=1
+
+1. **İçerde Kalan Komisyon** = `t_group_fee + finans_takviye − cekilen_komisyon`
+2. **Provider Kalan Komisyon** = `t_provider_fee − p_cekilen_komisyon`
+3. **Kalan Şirket Alacağı (KŞA)** = `t_company_amount − t_cekim + sirket_takviye − yapilan_teslimat`
+4. **Hesapta Kalan (Teorik Bakiye)** = İçerde Kalan Komisyon + Provider Kalan Komisyon + KŞA
+
+```
+Teorik Bakiye =
+    (t_group_fee + finans_takviye − cekilen_komisyon)
+  + (t_provider_fee − p_cekilen_komisyon)
+  + (t_company_amount − t_cekim + sirket_takviye − yapilan_teslimat)
+```
+
+5. **Fark (Kayma)** = `Teorik Bakiye − actual_balance`
+
+Fark pozitifse → sistemde olması gerekenden az para var (kayıp/eksik)
+Fark negatifse → sistemde olması gerekenden fazla para var (fazlalık)
+
+```sql
+-- Grup bazlı kayma analizi (kayıtlı sütunlardan — komisyon değişse bile doğru)
+WITH grup_data AS (
+    SELECT
+        g.id as group_id, g.name,
+        COALESCE(SUM(CASE WHEN pt.payment_type=1 AND pt.status=1 THEN pt.amount END), 0) as t_yatirim,
+        COALESCE(SUM(CASE WHEN pt.payment_type=0 AND pt.status=1 THEN pt.amount END), 0) as t_cekim,
+        COALESCE(SUM(CASE WHEN pt.payment_type=1 AND pt.status=1 THEN pt.group_fee END), 0) as t_group_fee,
+        COALESCE(SUM(CASE WHEN pt.payment_type=1 AND pt.status=1 THEN pt.provider_fee END), 0) as t_provider_fee,
+        COALESCE(SUM(CASE WHEN pt.payment_type=1 AND pt.status=1 THEN pt.company_amount END), 0) as t_company_amount
+    FROM groups g
+    LEFT JOIN payment_transactions pt ON pt.group_id = g.id AND pt.deleted_at IS NULL
+    WHERE g.id = ?
+    GROUP BY g.id, g.name
+),
+ot_data AS (
+    SELECT
+        COALESCE(SUM(CASE WHEN transaction_process_type=0 THEN amount END), 0) as finans_takviye,
+        COALESCE(SUM(CASE WHEN transaction_process_type=4 THEN amount END), 0) as cekilen_komisyon,
+        COALESCE(SUM(CASE WHEN transaction_process_type=5 THEN amount END), 0) as p_cekilen_komisyon,
+        COALESCE(SUM(CASE WHEN transaction_process_type=2 THEN amount END), 0) as sirket_takviye,
+        COALESCE(SUM(CASE WHEN transaction_process_type=3 THEN amount END), 0) as yapilan_teslimat
+    FROM other_transactions
+    WHERE is_reverted = false
+    AND bank_account_id IN (SELECT id FROM bank_accounts WHERE group_id = ?)
+),
+bakiye AS (
+    SELECT COALESCE(SUM(balance), 0) as actual_balance
+    FROM bank_accounts WHERE group_id = ? AND status IN (0, 1, 2)
+)
+SELECT
+    gd.name,
+    gd.t_yatirim, gd.t_cekim,
+    gd.t_group_fee, gd.t_provider_fee, gd.t_company_amount,
+    (gd.t_group_fee + od.finans_takviye - od.cekilen_komisyon) as icerde_kalan_kom,
+    (gd.t_provider_fee - od.p_cekilen_komisyon) as provider_kalan_kom,
+    (gd.t_company_amount - gd.t_cekim + od.sirket_takviye - od.yapilan_teslimat) as ksa,
+    (gd.t_group_fee + od.finans_takviye - od.cekilen_komisyon)
+    + (gd.t_provider_fee - od.p_cekilen_komisyon)
+    + (gd.t_company_amount - gd.t_cekim + od.sirket_takviye - od.yapilan_teslimat) as teorik_bakiye,
+    b.actual_balance,
+    (gd.t_group_fee + od.finans_takviye - od.cekilen_komisyon)
+    + (gd.t_provider_fee - od.p_cekilen_komisyon)
+    + (gd.t_company_amount - gd.t_cekim + od.sirket_takviye - od.yapilan_teslimat)
+    - b.actual_balance as fark
+FROM grup_data gd, ot_data od, bakiye b
+```
+
+### Ekip Hakediş Çekimi
+- Periyot: ekibe göre değişken (günlük, haftalık, talep üzerine — sabit kural yok)
+- other_transactions tip=4 ile kayıt altına alınır
+- group_fee toplamı = ekibin hakediş alacağı
+- Hakediş çekildikten sonra bakiyeden düşer
+
+```sql
+-- Ekibin birikmiş hakediş alacağı vs çekilmiş miktarı
+SELECT g.name,
+    COALESCE(SUM(pt.group_fee), 0) as toplam_hakedis,
+    COALESCE((SELECT SUM(ot.amount) FROM other_transactions ot
+        WHERE ot.transaction_process_type=4 AND ot.is_reverted=false
+        AND ot.bank_account_id IN (SELECT id FROM bank_accounts WHERE group_id = g.id)
+    ), 0) as cekilen_hakedis
+FROM payment_transactions pt
+JOIN groups g ON pt.group_id = g.id
+WHERE pt.payment_type = 1 AND pt.status = 1
+GROUP BY g.id, g.name
+ORDER BY toplam_hakedis DESC
+```
+
 ## Önemli İş Kuralları Özeti
 - Bahis altyapısı ödeme sağlayıcısı
 - Çekim oranı düşüktür (tether teslimat tercih ediliyor)
