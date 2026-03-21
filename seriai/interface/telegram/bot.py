@@ -210,7 +210,9 @@ class TelegramBot:
                     pass
 
             # Send response (split if too long)
-            reply = response.text
+            reply = (response.text or "").strip()
+            if not reply:
+                reply = "Analiz tamamlandı ancak sonuç üretilemedi. Lütfen soruyu tekrar deneyin."
             max_len = self.config.telegram.max_message_length
             if len(reply) <= max_len:
                 await update.message.reply_text(reply)

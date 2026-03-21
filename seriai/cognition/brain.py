@@ -319,8 +319,12 @@ class Brain:
         self._memory_write_gate(user_text, resp.text, routing)
 
         elapsed = int((time.time() - t0) * 1000)
+        final_text = (resp.text or "").strip()
+        if not final_text:
+            final_text = "Analiz tamamlandı ancak sonuç üretilemedi. Lütfen soruyu tekrar deneyin."
+
         return BrainResponse(
-            text=resp.text,
+            text=final_text,
             domain=routing.domain,
             model_used=model_name,
             tools_used=tools_used,
