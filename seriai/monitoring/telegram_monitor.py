@@ -47,12 +47,23 @@ class TelegramMonitor:
     Gerçek zamanlı izleme + geçmiş arama + tam kontrol.
     """
 
+    # DM önem tespiti — bu kelimeler varsa "önemli olabilir" bildirimi
+    _IMPORTANT_KEYWORDS = [
+        "serial", "havale", "yatırım", "çekim", "işlem", "onay", "red",
+        "callback", "dead letter", "hata", "sorun", "acil", "önemli",
+        "hesap", "banka", "iban", "bakiye", "komisyon", "site",
+        "ekip", "bloke", "fraud", "müşteri", "ödeme", "para",
+        "limit", "bot", "panel", "gateway", "provider", "teslimat",
+        "urgent", "error", "problem", "critical",
+    ]
+
     def __init__(self):
         self._client = None
         self._running = False
         self._connected = False
         self._broadcast_fn: Optional[Callable] = None
         self._on_mention_fn: Optional[Callable] = None  # async callback for mention/reply
+        self._on_dm_fn: Optional[Callable] = None  # async callback for private DMs
         self._me = None  # Kullanıcı bilgisi
         self._recent_mentions: List[Dict] = []
         self._recent_messages: List[Dict] = []
@@ -89,6 +100,12 @@ class TelegramMonitor:
         Callback signature: async def on_mention(sender_name, chat_name, text_preview, reason)
         """
         self._on_mention_fn = callback
+
+    def set_on_dm(self, callback: Callable):
+        """Set async callback for private DM notifications.
+        Callback signature: async def on_dm(sender_name, sender_username, text_preview, is_important)
+        """
+        self._on_dm_fn = callback
 
     async def _broadcast(self, event_type: str, data: dict):
         if self._broadcast_fn:
@@ -246,6 +263,27 @@ class TelegramMonitor:
                         )
                     except Exception as cb_err:
                         log.error(f"Mention callback hatası: {cb_err}")
+
+            # ── DM (özel mesaj) tespiti ──
+            # Mention/reply olmasa bile, biri özel mesaj attıysa bildir
+            if not (is_mention or is_reply_to_me):
+                chat_type = self._get_chat_type(chat) if chat else "unknown"
+                is_dm = chat_type == "user"
+                is_from_other = sender and self._me and getattr(sender, "id", None) != self._me.id
+
+                if is_dm and is_from_other and self._on_dm_fn:
+                    try:
+                        text_preview = (msg.text or "")[:200]
+                        text_lower = _turkish_lower(text_preview)
+                        is_important = any(kw in text_lower for kw in self._IMPORTANT_KEYWORDS)
+                        await self._on_dm_fn(
+                            sender_name=sender_name,
+                            sender_username=sender_username,
+                            text_preview=text_preview,
+                            is_important=is_important,
+                        )
+                    except Exception as dm_err:
+                        log.error(f"DM callback hatası: {dm_err}")
 
             await self._broadcast("telegram_message", msg_data)
 

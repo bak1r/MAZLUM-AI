@@ -238,6 +238,24 @@ async def run_voice(brain, config, log):
         _telegram_monitor_instance.set_on_mention(_on_mention)
         log.info("Telegram mention → Sesli bildirim bağlandı.")
 
+        async def _on_dm(sender_name, sender_username, text_preview, is_important):
+            if is_important:
+                notification = (
+                    f"[BİLDİRİM] {sender_name} özel mesaj attı. "
+                    f"İş ile ilgili olabilir. Mesaj: \"{text_preview[:80]}\". "
+                    f"Kullanıcıya kısa bildir: önemli olabilir, bakmak ister misiniz diye sor."
+                )
+            else:
+                notification = (
+                    f"[BİLDİRİM] {sender_name} özel mesaj attı. "
+                    f"Gündelik bir mesaj gibi görünüyor. "
+                    f"Kullanıcıya kısa bildir: şu kişi mesaj attı, gündelik bir mesaj de."
+                )
+            await voice.inject_notification(notification)
+
+        _telegram_monitor_instance.set_on_dm(_on_dm)
+        log.info("Telegram DM → Sesli bildirim bağlandı.")
+
     log.info("Voice engine başlatılıyor...")
     try:
         await voice.run_async()
