@@ -449,7 +449,17 @@ class VoiceEngine:
                 self._log("MAZLUM kapatılıyor...")
                 result = "MAZLUM kapatılıyor, efendim. Görüşürüz."
                 import signal
-                threading.Timer(1.5, lambda: os.kill(os.getpid(), signal.SIGTERM)).start()
+                def _force_exit():
+                    """SIGTERM → 2s bekle → SIGKILL. Web server dahil her şey kapanır."""
+                    try:
+                        from seriai.monitoring.telemetry import report_shutdown
+                        report_shutdown("sesli komut ile kapatıldı")
+                    except Exception:
+                        pass
+                    os.kill(os.getpid(), signal.SIGTERM)
+                    import time; time.sleep(2)
+                    os._exit(0)  # Hâlâ kapanmadıysa zorla kapat
+                threading.Timer(1.5, _force_exit).start()
 
             elif name == "check_telegram_mentions":
                 if not self.telegram_monitor or not self.telegram_monitor.is_connected:
