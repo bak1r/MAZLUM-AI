@@ -45,6 +45,16 @@ Ana işlem tablosu. Her havale/ödeme işlemi burada.
 - group_fee: numeric — Ekip komisyon payı
 - company_amount: numeric — Sitenin net alacağı
 - ip_address: inet
+- user_id: bigint → İşlemi oluşturan kullanıcı
+- api_username: varchar → API üzerinden gelen site kullanıcısı
+- user_agent: text → İstek user agent'ı
+- **created_by: JSON** → İşlemi yapan kişi detayı: `{"id": 42, "name": "Mia", "email": "mia@serial.com", "ip": "...", "method": "PATCH", ...}`
+- **created_by_id: bigint** → users tablosuna FK
+- **updated_by: JSON** → Son güncellemeyi yapan (genelde NULL)
+- **updated_by_id: bigint**
+- **deleted_by: JSON** → Silme yapan kişi
+- **deleted_by_id: bigint**
+- JSON alanlarına PostgreSQL ile erişim: `created_by->>'name'`, `created_by->>'email'`
 - created_at, updated_at, deleted_at: timestamp
 
 **İstatistikler (canlı):**

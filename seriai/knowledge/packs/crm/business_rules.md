@@ -277,6 +277,184 @@ GROUP BY g.id, g.name ORDER BY toplam DESC
 7. **"Kaç tane" = COUNT, "ne kadar" = SUM(amount).** Ayrımı doğru yap.
 8. **LIMIT koy.** Liste sorgularında LIMIT 20-50 koy, 2.4M satır döndürme.
 
+## Manuel Onay ve Red→Onay Süreci
+
+### Manuel Onay Nedir?
+Bazı ekipler gelen yatırımı zamanında onaylamıyor. reject_time dolunca işlem otomatik reddediliyor ("System Declined"). Sonradan site sorgu yaptığında "bu yatırım geldi mi?" deniyor. Operasyon çalışanları ekiplere ulaşıp kontrol ediyor. Para gerçekten gelmişse, reddedilmiş işlem tekrar onaya çekiliyor.
+
+### DB'de Manuel Onay Nasıl Görünür?
+payment_transactions_state tablosunda şu action geçişleri oluşur:
+1. `"Provider upon request."` (status=0) → İşlem oluşturuldu
+2. `"System Declined"` (status=3) → Otomatik red (reject_time doldu)
+3. `"Yatırımın durumu onaylandı olarak düzenlendi."` (status=1) → **MANUEL ONAY**
+
+Yani **"Yatırımın durumu onaylandı olarak düzenlendi."** = manuel onay action string'i.
+
+### Manuel Yatırım Ekleme
+`"Manuel Yatırım Eklendi."` (status=0) → Sıfırdan elle eklenen işlem. Callback'siz olabilir.
+
+### Audit Trail — Kim Yaptı?
+`payment_transactions.created_by` → **JSON alanı**, içeriği:
+```json
+{"id": 42, "name": "Mia", "email": "mia@serial.com", "ip": "127.0.0.1", ...}
+```
+- `created_by->>'name'` → İşlemi yapan kişinin adı
+- `created_by->>'email'` → @serial.com e-posta adresi
+- `created_by_id` → users tablosuna FK (bigint)
+- `updated_by` → JSON (genelde NULL, Laravel güncellemiyor)
+
+**Manuel onayı KİM yaptı?** → `payment_transactions_state` tablosunda state kayıtlarında `created_by` NULL olabiliyor (Laravel Queue'dan yazıldığı için). Ama `payment_transactions` tablosundaki `created_by` JSON her zaman dolu — son güncellemeyi yapan kişiyi gösterir.
+
+```sql
+-- Manuel onayı kim yaptı? (son 7 gün)
+SELECT pt.created_by->>'name' as yapan, pt.created_by->>'email' as email, COUNT(*) as cnt
+FROM payment_transactions pt
+WHERE pt.status = 1 AND pt.created_at >= CURRENT_DATE - INTERVAL '7 days'
+AND EXISTS (SELECT 1 FROM payment_transactions_state pts WHERE pts.transaction_id = pt.id AND pts.status = 3)
+GROUP BY pt.created_by->>'name', pt.created_by->>'email'
+ORDER BY cnt DESC
+```
+
+### Diğer Action String'leri
+- `"Yatırımın tutarı onaylandı."` → Normal onay (tutarla)
+- `"Yatırımın reddedildi."` → Manuel red (operatör)
+- `"Yatırımın tutarı güncellendi."` → Tutar değişikliği
+- `"Yatırımın banka hesabı güncellendi."` → Hesap değişikliği
+- `"Yatırımın grubu güncellendi."` → Grup değişikliği
+- `"Yatırımın durumu iptal olarak düzenlendi."` → İptal
+- `"auto approved"` → Otomatik onay (SMS eşleşmesi)
+- `"Amount set."` → Tutar ayarlandı
+- `"Professional Code Approved."` → Referans kodu onayı
+
+### Manuel Onay Sorgu Örneği
+```sql
+-- Son 7 günde red→onay (manuel onay) sayısı
+SELECT COUNT(DISTINCT pt.id)
+FROM payment_transactions pt
+WHERE pt.status = 1 AND pt.created_at >= CURRENT_DATE - INTERVAL '7 days'
+AND EXISTS (
+    SELECT 1 FROM payment_transactions_state pts
+    WHERE pts.transaction_id = pt.id AND pts.status = 3
+)
+```
+
+### Sorunlu Ekip Tespiti
+Manuel onay oranı yüksek ekipler = işleyişi kötü etkileyen ekipler.
+```sql
+-- Ekip bazlı: red sayısı, manuel onay sayısı, red oranı
+SELECT g.name,
+    COUNT(*) FILTER (WHERE pt.status=1) as onayli,
+    COUNT(*) FILTER (WHERE pt.status=3) as red,
+    ROUND(COUNT(*) FILTER (WHERE pt.status=3)::numeric / NULLIF(COUNT(*),0) * 100, 1) as red_oran,
+    (SELECT COUNT(DISTINCT pt2.id) FROM payment_transactions pt2
+     WHERE pt2.group_id = g.id AND pt2.status = 1 AND pt2.created_at >= CURRENT_DATE - INTERVAL '7 days'
+     AND EXISTS (SELECT 1 FROM payment_transactions_state pts WHERE pts.transaction_id = pt2.id AND pts.status = 3)
+    ) as manuel_onay
+FROM payment_transactions pt
+JOIN groups g ON pt.group_id = g.id
+WHERE pt.payment_type = 1 AND pt.created_at >= CURRENT_DATE - INTERVAL '7 days'
+GROUP BY g.id, g.name
+ORDER BY red DESC
+```
+
+### Normal Kıyaslama Değerleri
+- Platform geneli günlük red oranı: **~%28-30** (bu normal)
+- Ekip bazlı red oranı %40+ = sorunlu (ortalamanın çok üstü)
+- Manuel onay oranı %5+ = dikkat çekici, %10+ = sorunlu
+- Gün: Gece 00:00 → Gece 00:00 (24 saat, sıfırlama gece 12)
+- Çalışma saatleri: Ekibe göre değişken, sabit vardiya yok
+
+## Muhasebe ve Finansal Hesaplamalar
+
+### Temel Muhasebe Formülleri
+
+**Günlük Ciro (Brüt):**
+```sql
+SELECT COALESCE(SUM(amount), 0) FROM payment_transactions
+WHERE payment_type = 1 AND status = 1 AND created_at >= CURRENT_DATE
+```
+
+**Günlük Çekim Toplamı:**
+```sql
+SELECT COALESCE(SUM(amount), 0) FROM payment_transactions
+WHERE payment_type = 0 AND status = 1 AND created_at >= CURRENT_DATE
+```
+
+**Net Kasa (company_amount):**
+```
+Net Kasa = Toplam Onaylı Yatırım - Toplam Komisyon - Çekim - Şirket Teslimat + Şirket Takviye
+```
+`company_amount` kolonu bunu otomatik hesaplar (sadece yatırımlarda dolu):
+```sql
+SELECT COALESCE(SUM(company_amount), 0) as net_kasa
+FROM payment_transactions
+WHERE payment_type = 1 AND status = 1 AND created_at >= CURRENT_DATE
+```
+
+**Toplam Komisyon Geliri:**
+```sql
+-- Provider komisyonu (serialhavale'nin kârı)
+SELECT COALESCE(SUM(provider_fee), 0) FROM payment_transactions
+WHERE payment_type = 1 AND status = 1 AND created_at >= CURRENT_DATE
+
+-- Grup komisyonu (ekiplerin payı)
+SELECT COALESCE(SUM(group_fee), 0) FROM payment_transactions
+WHERE payment_type = 1 AND status = 1 AND created_at >= CURRENT_DATE
+```
+
+**Komisyon Formülü Detay:**
+```
+Yatırım: 100.000 TL
+Site komisyonu: %5 (site.commission alanından)
+Toplam komisyon: 100.000 × 0.05 = 5.000 TL
+Grup payı (group_fee): grup.commission × yatırım → ör: %3 = 3.000 TL
+Provider payı (provider_fee): toplam komisyon - grup payı = 2.000 TL
+Site alacağı (company_amount): yatırım - toplam komisyon = 95.000 TL
+ÇEKİMDE KOMİSYON YOK! provider_fee ve group_fee = 0
+```
+
+### other_transactions Muhasebe Kalemleri
+| Tip | Kod | Açıklama | Kasa Etkisi |
+|-----|-----|----------|-------------|
+| Finans takviye | 0 | Ekibin çekimlere yetişmek için eklediği ek para | Kasayı ARTTIRIR |
+| Finans takviye düş | 1 | Takviyeyi raporu bozmadan geri alma | Kasayı AZALTIR |
+| Şirket takviye | 2 | Sitenin çekim çıkışı için gönderdiği para | Kasayı ARTTIRIR |
+| Şirket teslimat | 3 | Kripto teslimat (raporda çekim gibi düşer) | Kasayı AZALTIR |
+| Grup komisyon çekimi | 4 | Ekibin hakediş çekimi (group_fee) | Kasayı AZALTIR |
+| Provider komisyon çekimi | 5 | Provider hakediş çekimi (provider_fee) | Kasayı AZALTIR |
+| Bankalar arası transfer | 6 | Hesaplar arası para aktarma | NET ETKİSİ YOK (birinden düşer, diğerine eklenir) |
+
+**Tümü revert edilebilir** (is_reverted=true → bakiye otomatik geri döner).
+
+### Tam Kasa Hesaplama (Muhasebe Formülü)
+```sql
+SELECT
+    -- Yatırım cirosu (brüt)
+    COALESCE(SUM(CASE WHEN payment_type=1 AND status=1 THEN amount END), 0) as brut_yatirim,
+    -- Çekim toplamı
+    COALESCE(SUM(CASE WHEN payment_type=0 AND status=1 THEN amount END), 0) as toplam_cekim,
+    -- Komisyon toplamı
+    COALESCE(SUM(CASE WHEN payment_type=1 AND status=1 THEN provider_fee + group_fee END), 0) as toplam_komisyon,
+    -- Net kasa (company_amount zaten bunu verir)
+    COALESCE(SUM(CASE WHEN payment_type=1 AND status=1 THEN company_amount END), 0) as net_kasa
+FROM payment_transactions
+WHERE created_at >= CURRENT_DATE AND deleted_at IS NULL
+```
+
+### Banka Hesabı Bakiye Kontrolü
+```sql
+-- Toplam aktif hesap bakiyesi
+SELECT SUM(balance) as toplam_bakiye, COUNT(*) as hesap_sayisi
+FROM bank_accounts WHERE status = 1
+
+-- Ekip bazlı bakiye
+SELECT g.name, SUM(ba.balance) as bakiye, COUNT(ba.id) as hesap
+FROM bank_accounts ba
+JOIN groups g ON ba.group_id = g.id
+WHERE ba.status = 1
+GROUP BY g.id, g.name ORDER BY bakiye DESC
+```
+
 ## Önemli İş Kuralları Özeti
 - Bahis altyapısı ödeme sağlayıcısı
 - Çekim oranı düşüktür (tether teslimat tercih ediliyor)
