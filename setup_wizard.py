@@ -153,7 +153,42 @@ def step_telegram():
     if not ask_yn("Telegram Bot kullanacak misin?", default=True):
         return config
 
-    cprint("  @BotFather'dan bot olustur, token'i buraya yaz.", YELLOW)
+    # ── Her bilgisayar icin YENI bot olusturma rehberi ──
+    print()
+    cprint("  ┌─────────────────────────────────────────────────┐", CYAN)
+    cprint("  │  ⚠️  HER BİLGİSAYAR İÇİN YENİ BOT GEREKLİ!    │", CYAN)
+    cprint("  │                                                 │", CYAN)
+    cprint("  │  Telegram bir bot token'i ayni anda sadece      │", CYAN)
+    cprint("  │  BIR cihazda calistirir. Cakisma olmasin diye   │", CYAN)
+    cprint("  │  her PC'ye ozel yeni bot olusturmalisin.        │", CYAN)
+    cprint("  └─────────────────────────────────────────────────┘", CYAN)
+    print()
+
+    if ask_yn("Yeni bot olusturmak icin rehber ister misin?", default=True):
+        cprint("  Simdi BotFather'i aciyorum...", YELLOW)
+        print()
+
+        # BotFather'i ac (platform bagimsiz)
+        import webbrowser
+        try:
+            webbrowser.open("https://t.me/BotFather")
+        except Exception:
+            cprint("  (Tarayici acilamadi — elle git: https://t.me/BotFather)", RED)
+
+        cprint("  ┌─── BOT OLUSTURMA ADIMLARI ───────────────────┐", GREEN)
+        cprint("  │                                               │", GREEN)
+        cprint("  │  1. BotFather'a /newbot yaz                   │", GREEN)
+        cprint("  │  2. Bot'a isim ver:  MAZLUM - <CihazAdi>      │", GREEN)
+        cprint("  │     ornek: 'MAZLUM - MacBook Pro'              │", GREEN)
+        cprint("  │  3. Username ver:  mazlum_<cihaz>_bot          │", GREEN)
+        cprint("  │     ornek: 'mazlum_macbookpro_bot'             │", GREEN)
+        cprint("  │  4. BotFather sana token verecek — kopyala     │", GREEN)
+        cprint("  │                                               │", GREEN)
+        cprint("  └───────────────────────────────────────────────┘", GREEN)
+        print()
+        input("  Bot'u olusturduysan Enter'a bas...")
+        print()
+
     config["SERIAI_TELEGRAM_BOT_TOKEN"] = ask("Bot Token", secret=True)
 
     cprint("  Hangi Telegram hesaplari botu kullanabilsin?", YELLOW)
@@ -173,6 +208,7 @@ def step_telegram():
     print()
     if ask_yn("Telegram hesabindan mesaj izleme (Telethon) kullanacak misin?", default=False):
         cprint("  https://my.telegram.org adresinden API bilgilerini al.", YELLOW)
+        cprint("  (API ID ve Hash tum cihazlarda AYNI olabilir — sorun yok.)", YELLOW)
         config["SERIAI_TG_API_ID"] = ask("Telegram API ID")
         config["SERIAI_TG_API_HASH"] = ask("Telegram API Hash")
         config["SERIAI_TG_PHONE"] = ask("Telefon numarasi (+905xx...)")
@@ -256,7 +292,7 @@ def step_features():
 
 
 def step_personalize():
-    """Adim 6: Kisisel bilgiler."""
+    """Adim 6: Kisisel bilgiler + hafiza aktarimi."""
     cprint("[6/7] KISISELLISTIRME", BOLD)
     print()
 
@@ -267,6 +303,51 @@ def step_personalize():
 
     lang = ask("Dil (tr/en)", default="tr")
     config["SERIAI_LANGUAGE"] = lang
+
+    # ── Hafiza Aktarimi ──
+    print()
+    cprint("  ┌─── MAZLUM HAFIZASI ────────────────────────────┐", CYAN)
+    cprint("  │                                                │", CYAN)
+    cprint("  │  MAZLUM konusmalardan ogrenir ve hatirlar:     │", CYAN)
+    cprint("  │  - Kisisel bilgiler (isimler, roller)          │", CYAN)
+    cprint("  │  - Is surecleri ve kurallar                    │", CYAN)
+    cprint("  │  - Musteri bilgileri                           │", CYAN)
+    cprint("  │  - Hatalardan ogrendikleri                     │", CYAN)
+    cprint("  │                                                │", CYAN)
+    cprint("  │  Eski bilgisayardan hafizayi aktarabilirsin!   │", CYAN)
+    cprint("  └────────────────────────────────────────────────┘", CYAN)
+    print()
+
+    if ask_yn("Eski bilgisayardan hafiza aktarmak ister misin?", default=False):
+        cprint("  Eski bilgisayarda su komutu calistir:", YELLOW)
+        cprint("    cd MAZLUM-AI && python3 -c \"", YELLOW)
+        cprint("    from seriai.memory.manager import MemoryManager", YELLOW)
+        cprint("    from pathlib import Path", YELLOW)
+        cprint("    m = MemoryManager(Path('data/memory'))", YELLOW)
+        cprint("    m.export_memory(Path('mazlum_hafiza.json'))", YELLOW)
+        cprint("    print('Dosya olusturuldu: mazlum_hafiza.json')\"", YELLOW)
+        print()
+        cprint("  Sonra o dosyayi bu bilgisayara kopyala.", YELLOW)
+        print()
+
+        import_path = ask("Hafiza dosyasinin yolu (mazlum_hafiza.json)", required=False)
+        if import_path:
+            p = Path(import_path).expanduser()
+            if p.exists():
+                try:
+                    # Import islemi
+                    sys.path.insert(0, str(BASE_DIR))
+                    from seriai.memory.manager import MemoryManager
+                    mem = MemoryManager(MEMORY_DIR)
+                    count = mem.import_memory(p, merge=True)
+                    cprint(f"  ✅ {count} hafiza kaydi aktarildi!", GREEN)
+                except Exception as e:
+                    cprint(f"  ❌ Hafiza aktarimi basarisiz: {e}", RED)
+            else:
+                cprint(f"  ❌ Dosya bulunamadi: {p}", RED)
+                cprint("  Sorun degil — MAZLUM sifirdan da ogrenebilir.", YELLOW)
+    else:
+        cprint("  Tamam — MAZLUM sifirdan ogrenecek. Zamanla seni taniyacak.", YELLOW)
 
     return config
 

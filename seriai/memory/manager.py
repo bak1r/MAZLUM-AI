@@ -184,3 +184,60 @@ class MemoryManager:
     def stats(self) -> dict:
         """Return memory statistics."""
         return {cat: len(facts) for cat, facts in self._store.items() if facts}
+
+    def export_memory(self, export_path: Path) -> bool:
+        """Export all memory to a portable JSON file."""
+        try:
+            data = {
+                "version": 1,
+                "exported_at": int(time.time()),
+                "categories": self._store,
+            }
+            export_path.write_text(
+                json.dumps(data, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            total = sum(len(v) for v in self._store.values())
+            log.info(f"Memory exported: {total} facts → {export_path}")
+            return True
+        except Exception as e:
+            log.error(f"Memory export failed: {e}")
+            return False
+
+    def import_memory(self, import_path: Path, merge: bool = True) -> int:
+        """
+        Import memory from a portable JSON file.
+        merge=True: adds new facts to existing (dedup).
+        merge=False: replaces everything.
+        Returns number of facts imported.
+        """
+        try:
+            data = json.loads(import_path.read_text(encoding="utf-8"))
+            categories = data.get("categories", data)  # v1 format or raw
+
+            if not merge:
+                self._store = {cat: [] for cat in VALID_CATEGORIES}
+
+            imported = 0
+            for cat in VALID_CATEGORIES:
+                new_facts = categories.get(cat, [])
+                if not isinstance(new_facts, list):
+                    continue
+                existing_texts = {f.get("text", "") for f in self._store[cat]}
+                for fact in new_facts:
+                    text = fact.get("text", "") if isinstance(fact, dict) else str(fact)
+                    if text and text not in existing_texts:
+                        self._store[cat].append(
+                            fact if isinstance(fact, dict)
+                            else {"text": text, "source": "import", "ts": int(time.time())}
+                        )
+                        existing_texts.add(text)
+                        imported += 1
+
+            self._dirty = True
+            self.save()
+            log.info(f"Memory imported: {imported} new facts from {import_path}")
+            return imported
+        except Exception as e:
+            log.error(f"Memory import failed: {e}")
+            return 0
