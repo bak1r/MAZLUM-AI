@@ -82,6 +82,15 @@ def banner():
 def step_dependencies():
     """Adim 1: Python bagimliliklari kur."""
     cprint("[1/7] BAGIMLILIKLAR", BOLD)
+
+    # Python version kontrolu (3.9+ zorunlu)
+    if sys.version_info < (3, 9):
+        cprint(f"  ❌ Python {sys.version_info.major}.{sys.version_info.minor} tespit edildi.", RED)
+        cprint("  MAZLUM icin Python 3.9 veya ustu gerekli!", RED)
+        cprint("  https://www.python.org/downloads/ adresinden guncelle.", YELLOW)
+        return False
+
+    cprint(f"  Python {sys.version_info.major}.{sys.version_info.minor}: uygun ✓", GREEN)
     cprint("  Python paketleri kuruluyor...", YELLOW)
 
     req_file = BASE_DIR / "requirements.txt"

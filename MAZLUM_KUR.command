@@ -30,6 +30,19 @@ fi
 
 PYVER=$(python3 --version 2>&1)
 echo "  ✅ $PYVER bulundu"
+
+# Python 3.9+ kontrolü
+PY_MINOR=$(python3 -c "import sys; print(sys.version_info.minor)" 2>/dev/null)
+if [ "$PY_MINOR" -lt 9 ] 2>/dev/null; then
+    echo ""
+    echo "  ❌ Python 3.9 veya üstü gerekli!"
+    echo "  Mevcut: $PYVER"
+    echo ""
+    echo "  Güncelle: https://www.python.org/downloads/"
+    echo ""
+    read -p "  Çıkmak için Enter'a bas..."
+    exit 1
+fi
 echo ""
 
 # pip kontrolü
