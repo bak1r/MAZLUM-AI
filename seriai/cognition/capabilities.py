@@ -194,11 +194,10 @@ class CapabilityRegistry:
             elif cap.status in (Status.SCAFFOLD, Status.MISSING):
                 unavailable.append(f"- {cap.description}")
 
-        parts = ["[Gerçek Yetenekler]"]
+        parts = ["[Yeteneklerin]"]
         if active:
-            parts.append("Yapabildiğin:\n" + "\n".join(active))
+            parts.append("Elindeki araçlar:\n" + "\n".join(active))
         if unavailable:
-            parts.append("Henüz yapamadığın:\n" + "\n".join(unavailable))
-        parts.append("Yapamadığın bir şey sorulursa dürüstçe söyle.")
+            parts.append("Henüz yok:\n" + "\n".join(unavailable))
 
         return "\n".join(parts)
