@@ -27,6 +27,12 @@ from typing import Optional, Callable, List, Dict, Any
 
 log = logging.getLogger("seriai.monitoring.telegram_monitor")
 
+
+def _turkish_lower(text: str) -> str:
+    """Turkish-aware lowercase. Python's .lower() maps İ→i̇ (wrong), we need İ→i, I→ı."""
+    return text.replace("İ", "i").replace("I", "ı").lower()
+
+
 # Session dosyası
 SESSION_PATH = Path(__file__).resolve().parents[2] / "data" / "telegram_user"
 
@@ -253,16 +259,16 @@ class TelegramMonitor:
         try:
             from telethon.tl.types import MessageEntityMention, MessageEntityMentionName
 
-            text = (msg.text or "").lower()
-            my_username = (self._me.username or "").lower()
-            my_first_name = (self._me.first_name or "").lower()
+            text = _turkish_lower(msg.text or "")
+            my_username = _turkish_lower(self._me.username or "")
+            my_first_name = _turkish_lower(self._me.first_name or "")
             my_id = self._me.id
 
             # Entity tabanlı
             if msg.entities:
                 for entity in msg.entities:
                     if isinstance(entity, MessageEntityMention):
-                        mention_text = msg.text[entity.offset:entity.offset + entity.length].lower()
+                        mention_text = _turkish_lower(msg.text[entity.offset:entity.offset + entity.length])
                         if my_username and mention_text.lstrip("@") == my_username:
                             return True
                     elif isinstance(entity, MessageEntityMentionName):
@@ -478,13 +484,13 @@ class TelegramMonitor:
         if not self.is_connected:
             return None
 
-        name_lower = name.lower().strip()
+        name_lower = _turkish_lower(name.strip())
 
         # 1. Cache'de ara (hızlı — 300+ chat zaten yüklü)
         best_match = None
         best_score = 0
         for cid, info in self._dialog_cache.items():
-            cname = info["name"].lower()
+            cname = _turkish_lower(info["name"])
             if name_lower == cname:
                 return {"id": cid, **info}  # Tam eşleşme
             if name_lower in cname:
@@ -502,7 +508,7 @@ class TelegramMonitor:
             api_best = None
             api_best_score = 0
             async for dialog in self._client.iter_dialogs(limit=None):
-                dname = (dialog.name or "").lower()
+                dname = _turkish_lower(dialog.name or "")
                 if name_lower == dname:
                     # Tam eşleşme — hemen döndür
                     result = {
