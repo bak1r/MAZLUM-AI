@@ -635,6 +635,109 @@ GROUP BY g.id, g.name
 ORDER BY toplam_hakedis DESC
 ```
 
+## Ekip Performans İstatistikleri ve Skorlama
+
+### Panel İstatistik Sayfası Metrikleri
+serialhavale.com panelinde İstatistikler sayfası var. Bu sayfadaki veriler DB'den şöyle üretilir:
+
+```sql
+-- Ekip istatistikleri (günlük veya tarih aralığına göre)
+SELECT
+    g.id, g.name,
+    COUNT(*) as toplam_islem,
+    COUNT(*) FILTER (WHERE pt.payment_type=1 AND pt.status=1) as basarili_yatirim,
+    COUNT(*) FILTER (WHERE pt.payment_type=1 AND pt.status=3) as basarisiz_yatirim,
+    COUNT(*) FILTER (WHERE pt.payment_type=0 AND pt.status=1) as basarili_cekim,
+    COUNT(*) FILTER (WHERE pt.payment_type=0 AND pt.status=3) as basarisiz_cekim,
+    COALESCE(SUM(CASE WHEN pt.payment_type=1 AND pt.status=1 THEN pt.amount END), 0) as yatirim_tutari,
+    COALESCE(SUM(CASE WHEN pt.payment_type=0 AND pt.status=1 THEN pt.amount END), 0) as cekim_tutari,
+    -- Ortalama onay süresi (saniye)
+    ROUND(AVG(CASE WHEN pt.payment_type=1 AND pt.status=1
+        THEN EXTRACT(EPOCH FROM (pt.updated_at - pt.created_at)) END)::numeric, 0) as ort_yatirim_sure_sn,
+    ROUND(AVG(CASE WHEN pt.payment_type=0 AND pt.status=1
+        THEN EXTRACT(EPOCH FROM (pt.updated_at - pt.created_at)) END)::numeric, 0) as ort_cekim_sure_sn,
+    -- Başarı oranı
+    ROUND(
+        COUNT(*) FILTER (WHERE pt.payment_type=1 AND pt.status=1)::numeric /
+        NULLIF(COUNT(*) FILTER (WHERE pt.payment_type=1), 0) * 100, 1
+    ) as yatirim_basari_oran,
+    -- Ortalama yatırım tutarı
+    ROUND(AVG(CASE WHEN pt.payment_type=1 AND pt.status=1 THEN pt.amount END)::numeric, 0) as ort_yatirim_tutar
+FROM payment_transactions pt
+JOIN groups g ON pt.group_id = g.id
+WHERE pt.created_at >= CURRENT_DATE AND pt.deleted_at IS NULL
+GROUP BY g.id, g.name
+ORDER BY basarili_yatirim DESC
+```
+
+### Ekip Performans Değerlendirme Kriterleri
+
+**İYİ EKİP göstergeleri:**
+- Yüksek yatırım hacmi (çok işlem alıyor = sistemi sırtlıyor)
+- Yüksek başarı oranı (%85+ iyi, %90+ çok iyi)
+- Düşük ortalama yatırım tutarı + yüksek adet = küçük işlemleri reddetmeden onaylıyor
+- Yüksek çekim sayısı = çekim yükünü de taşıyor
+- Düşük ortalama onay süresi = hızlı çalışıyor
+
+**KÖTÜ EKİP göstergeleri:**
+- Düşük başarı oranı (%80 altı = sorunlu)
+- Yüksek ortalama tutar + düşük adet = sadece büyük işlemleri alıyor, küçükleri reddediyor (kolaya kaçma)
+- Çekim sayısı sıfır veya çok düşük = çekim yükünü taşımıyor
+- Yüksek ortalama onay süresi = yavaş çalışıyor, işlem bekletiyor
+- Yüksek manuel onay oranı = zamanında onaylamıyor, sonradan düzeltiyor
+
+**Yük Dağılımı (Sistem Sırtlama):**
+```sql
+-- Her ekibin toplam yükteki payı (%)
+SELECT g.name,
+    COUNT(*) FILTER (WHERE pt.payment_type=1 AND pt.status=1) as b_yatirim,
+    ROUND(
+        COUNT(*) FILTER (WHERE pt.payment_type=1 AND pt.status=1)::numeric /
+        NULLIF((SELECT COUNT(*) FROM payment_transactions WHERE payment_type=1 AND status=1 AND created_at >= CURRENT_DATE), 0) * 100, 1
+    ) as yuk_payi_yuzde
+FROM payment_transactions pt
+JOIN groups g ON pt.group_id = g.id
+WHERE pt.created_at >= CURRENT_DATE AND pt.deleted_at IS NULL
+GROUP BY g.id, g.name
+ORDER BY b_yatirim DESC
+```
+
+**Kolaya Kaçan Ekip Tespiti:**
+```sql
+-- Ortalama tutarı yüksek AMA adet düşük ekipler (büyük işlem seçici)
+SELECT g.name,
+    COUNT(*) FILTER (WHERE pt.payment_type=1 AND pt.status=1) as adet,
+    ROUND(AVG(CASE WHEN pt.payment_type=1 AND pt.status=1 THEN pt.amount END)::numeric, 0) as ort_tutar,
+    COALESCE(SUM(CASE WHEN pt.payment_type=1 AND pt.status=1 THEN pt.amount END), 0) as toplam_tutar
+FROM payment_transactions pt
+JOIN groups g ON pt.group_id = g.id
+WHERE pt.created_at >= CURRENT_DATE - INTERVAL '7 days' AND pt.deleted_at IS NULL
+GROUP BY g.id, g.name
+HAVING COUNT(*) FILTER (WHERE pt.payment_type=1) >= 50
+ORDER BY ort_tutar DESC
+```
+Ort. tutarı çok yüksek ama adedi düşük olan ekipler = kolaya kaçıyor olabilir.
+
+### Performans Skor Formülü
+Ekipleri sıralamak için bileşik skor:
+```
+Skor = (başarı_oranı × 0.3) + (yük_payı × 0.25) + (çekim_katkısı × 0.2) + (hız_skoru × 0.15) + (düşük_tutar_bonusu × 0.1)
+```
+- başarı_oranı: %85 = 85 puan
+- yük_payı: toplam yükteki yüzde (normalize 0-100)
+- çekim_katkısı: çekim sayısı / toplam çekim × 100
+- hız_skoru: 100 - (ort_süre_dakika × 10), min 0 (hızlı = yüksek puan)
+- düşük_tutar_bonusu: ort_tutar platform ortalamasının altındaysa bonus (küçük işlem almak erdem)
+
+### "En iyi ekip kim?" Sorusuna Cevap
+Bu soruya tek metrikle cevap verilmez. Birden fazla boyutu değerlendir:
+1. En çok yatırım onaylayan (hacim şampiyonu)
+2. En yüksek başarı oranı (kalite şampiyonu)
+3. En hızlı onay süresi (hız şampiyonu)
+4. En çok çekim yapan (çekim yükünü taşıyan)
+5. En düşük ortalama tutar ile en yüksek adet (emekçi)
+Her birini ayrı göster, genel skor da ver.
+
 ## Önemli İş Kuralları Özeti
 - Bahis altyapısı ödeme sağlayıcısı
 - Çekim oranı düşüktür (tether teslimat tercih ediliyor)
