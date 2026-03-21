@@ -33,9 +33,14 @@ log = logging.getLogger("seriai.cognition.brain")
 MAX_TOOL_ROUNDS = 4
 
 
+def _turkish_lower(text: str) -> str:
+    """Turkish-aware lowercase."""
+    return text.replace("İ", "i").replace("I", "ı").lower()
+
+
 def _extract_dir(text: str) -> str:
     """Extract directory shortcut from text."""
-    t = text.lower()
+    t = _turkish_lower(text)
     if "download" in t or "indirilen" in t:
         return "downloads"
     if "belge" in t or "document" in t:

@@ -905,7 +905,7 @@ class VoiceEngine:
                             if txt:
                                 in_buf.append(txt)
                                 # Cancel/dur komutu algıla — SADECE kısa, net iptal komutları
-                                lower = txt.lower().strip().rstrip(".!?,")
+                                lower = txt.replace("İ", "i").replace("I", "ı").lower().strip().rstrip(".!?,")
                                 # Tam eşleşme veya çok kısa cümleler (max 3 kelime)
                                 cancel_exact = ["dur", "sus", "kes", "iptal", "vazgeç", "stop", "durdur", "yeter", "tamam dur"]
                                 word_count = len(lower.split())
@@ -939,7 +939,7 @@ class VoiceEngine:
                             if not full_in and full_out and not self._notification_pending:
                                 ghost_words = ["evet", "hayır", "tamam", "anladım", "peki",
                                                "hm", "hmm", "pardon"]
-                                if any(full_out.lower().strip().startswith(g) for g in ghost_words) and len(full_out) < 20:
+                                if any(full_out.replace("İ","i").replace("I","ı").lower().strip().startswith(g) for g in ghost_words) and len(full_out) < 20:
                                     self._log(f"Ghost yanıt filtrelendi: {full_out}")
                                     await self._broadcast("speaking", {"active": False})
                                     await self._broadcast("thinking", {"active": False})
