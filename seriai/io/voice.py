@@ -12,10 +12,9 @@ import asyncio
 import logging
 import os
 import struct
-import sys
+import re
 import threading
 import time
-import traceback
 from typing import Optional, Callable
 
 log = logging.getLogger("seriai.io.voice")
@@ -200,11 +199,11 @@ class VoiceEngine:
             },
             {
                 "name": "computer_settings",
-                "description": "Bilgisayar ayarları: ses, parlaklık, ekran görüntüsü.",
+                "description": "Bilgisayar ses ayarları ve ekran görüntüsü. SADECE kullanıcı açıkça ses/volume değiştirmek istediğinde çağır. Rastgele sayılar veya belirsiz komutlar için ÇAĞIRMA.",
                 "parameters": {
                     "type": "OBJECT",
                     "properties": {
-                        "action": {"type": "STRING", "description": "volume_up|volume_down|mute|brightness_up|brightness_down|screenshot"},
+                        "action": {"type": "STRING", "description": "volume_up|volume_down|mute|unmute|get_volume|screenshot"},
                         "value": {"type": "STRING", "description": "Opsiyonel değer"}
                     },
                     "required": ["action"]
@@ -366,7 +365,7 @@ class VoiceEngine:
             "- Selamlaşma, teşekkür, veda → direkt samimi cevap ver\n"
             "- Telegram tool'ları → direkt Telegram tool'unu kullan\n"
             "- Uygulama aç/kapat → open_app\n"
-            "- Ses/parlaklık → computer_settings\n\n"
+            "- Ses ayarı (aç/kıs/kapat/seviye) → computer_settings\n\n"
 
             "EKRAN: screen_check ile ekranı görebilirsin.\n"
             "TELEGRAM: 'oku' → read_telegram_chat, 'aç' → open_telegram_chat, 'mesaj gönder' → reply_telegram (önce onay al!)\n\n"
@@ -721,12 +720,13 @@ class VoiceEngine:
                     if not text:
                         result = "Mesaj metni gerekli."
                     else:
-                        result = await asyncio.wait_for(
+                        raw = await asyncio.wait_for(
                             self.telegram_monitor.send_reply(
                                 chat_id=chat_id, chat_name=chat_name, text=text
                             ),
                             timeout=15.0,
                         )
+                        result = raw if isinstance(raw, str) else str(raw)
 
             elif name == "mark_telegram_read":
                 if not self.telegram_monitor or not self.telegram_monitor.is_connected:
@@ -951,6 +951,9 @@ class VoiceEngine:
                             self._is_speaking = False
                             full_in = " ".join(in_buf).strip() if in_buf else ""
                             full_out = " ".join(out_buf).strip() if out_buf else ""
+                            # Gemini bazen kontrol tokenları üretir (<ctrl46> vb.) — temizle
+                            if full_out:
+                                full_out = re.sub(r'<ctrl\d+>', '', full_out).strip()
                             in_buf = []
                             out_buf = []
 

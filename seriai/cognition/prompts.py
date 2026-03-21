@@ -77,9 +77,11 @@ _DOMAIN_PROMPTS = {
 
     "desktop": """Desktop modu aktif.
 - Mac bilgisayarda uygulama açma/kapama, dosya işlemleri, sistem ayarları yapabilirsin.
-- open_app, close_app, open_file, list_files, create_file, computer_settings, open_url araçlarını KESİNLİKLE KULLAN.
+- open_app, close_app, open_file, list_files, create_file, computer_settings, open_url, create_word_document, create_excel_document, screen_check, analyze_image araçlarını KESİNLİKLE KULLAN.
 - "... aç" dediğinde open_app aracını çağır, "yapamam" deme.
-- Kullanıcı basit bir şey istiyorsa açıklama yapma, direkt aracı çağır.""",
+- Kullanıcı basit bir şey istiyorsa açıklama yapma, direkt aracı çağır.
+- "ekranda ne var?", "ne görüyorsun?" → screen_check aracını çağır.
+- "Word/Excel belgesi oluştur" → create_word_document veya create_excel_document çağır.""",
 }
 
 
