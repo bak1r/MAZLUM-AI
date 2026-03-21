@@ -153,18 +153,17 @@ def step_telegram():
     if not ask_yn("Telegram Bot kullanacak misin?", default=True):
         return config
 
-    # ── Her bilgisayar icin YENI bot olusturma rehberi ──
+    # ── Bot token rehberi ──
     print()
     cprint("  ┌─────────────────────────────────────────────────┐", CYAN)
-    cprint("  │  ⚠️  HER BİLGİSAYAR İÇİN YENİ BOT GEREKLİ!    │", CYAN)
-    cprint("  │                                                 │", CYAN)
-    cprint("  │  Telegram bir bot token'i ayni anda sadece      │", CYAN)
-    cprint("  │  BIR cihazda calistirir. Cakisma olmasin diye   │", CYAN)
-    cprint("  │  her PC'ye ozel yeni bot olusturmalisin.        │", CYAN)
+    cprint("  │  Mevcut bir bot token'in varsa onu kullanabilir- │", CYAN)
+    cprint("  │  sin. Ayni token'i ayni anda iki bilgisayarda   │", CYAN)
+    cprint("  │  calistiramazsin (Telegram kisitlamasi).         │", CYAN)
+    cprint("  │  Yoksa yeni bot olusturman gerekir.             │", CYAN)
     cprint("  └─────────────────────────────────────────────────┘", CYAN)
     print()
 
-    if ask_yn("Yeni bot olusturmak icin rehber ister misin?", default=True):
+    if ask_yn("Yeni bot olusturmak icin rehber ister misin?", default=False):
         cprint("  Simdi BotFather'i aciyorum...", YELLOW)
         print()
 
