@@ -44,7 +44,7 @@ _DOMAIN_SIGNALS = {
         "musteri", "müşteri", "siparis", "sipariş", "satis", "satış",
         "fatura", "teklif", "lead", "pipeline", "crm", "firma",
         "iletisim", "iletişim", "kayit", "kayıt",
-        "islem", "işlem", "havale", "yatirim", "yatırım", "cekim", "çekim",
+        "islem", "işlem", "havale", "yatirim", "yatırım", "cekim", "çekim", "iade",
         "bekleyen", "onay", "red", "banka", "iban", "hesap", "bakiye",
         "site", "grup", "komisyon", "tutar", "odeme", "ödeme",
         # Callback & dead letter
