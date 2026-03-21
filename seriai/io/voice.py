@@ -851,8 +851,8 @@ class VoiceEngine:
                 if self._is_speaking or now_mono < _post_speak_mute_end:
                     # Bot konuşurken echo'yu engelle AMA barge-in için yüksek sesi geçir
                     # Kullanıcı "dur" dediğinde Gemini algılayabilsin
-                    if rms > 2500:
-                        # Yüksek ses = kullanıcı konuşuyor → barge-in sinyali
+                    if rms > 4000:
+                        # Yüksek ses = kullanıcı konuşuyor → barge-in sinyali (4000 = hoparlör echo'sunu geç)
                         await self._out_queue.put({"data": data, "mime_type": "audio/pcm"})
                     else:
                         await self._out_queue.put({"data": SILENCE, "mime_type": "audio/pcm"})
@@ -902,21 +902,23 @@ class VoiceEngine:
                             txt = sc.input_transcription.text.strip()
                             if txt:
                                 in_buf.append(txt)
-                                # Cancel/dur komutu algıla
-                                lower = txt.lower().replace(" ", "")
-                                cancel_words = ["dur", "sus", "kes", "iptal", "vazgeç", "stop"]
-                                for cw in cancel_words:
-                                    if cw in lower:
-                                        self._log(f"İptal komutu algılandı: '{txt}'")
-                                        # Audio kuyruğunu temizle
-                                        while not self._audio_in_queue.empty():
-                                            try:
-                                                self._audio_in_queue.get_nowait()
-                                            except asyncio.QueueEmpty:
-                                                break
-                                        self._is_speaking = False
-                                        await self._broadcast("speaking", {"active": False})
-                                        break
+                                # Cancel/dur komutu algıla — SADECE kısa, net iptal komutları
+                                lower = txt.lower().strip().rstrip(".!?,")
+                                # Tam eşleşme veya çok kısa cümleler (max 3 kelime)
+                                cancel_exact = ["dur", "sus", "kes", "iptal", "vazgeç", "stop", "durdur", "yeter", "tamam dur"]
+                                word_count = len(lower.split())
+                                is_cancel = lower in cancel_exact or (word_count <= 3 and any(lower == cw or lower.startswith(cw + " ") for cw in cancel_exact))
+                                if is_cancel:
+                                    self._log(f"İptal komutu algılandı: '{txt}'")
+                                    # Audio kuyruğunu temizle
+                                    while not self._audio_in_queue.empty():
+                                        try:
+                                            self._audio_in_queue.get_nowait()
+                                        except asyncio.QueueEmpty:
+                                            break
+                                    self._is_speaking = False
+                                    await self._broadcast("speaking", {"active": False})
+                                    break
 
                         if sc.output_transcription and sc.output_transcription.text:
                             txt = sc.output_transcription.text.strip()
