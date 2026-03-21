@@ -204,11 +204,34 @@ company_amount = yatırım - çekim - komisyon - şirket_teslimat + şirket_takv
 3. Grup limiti (çoğunluk: low=100, high=100000. 10 grup limitsiz: 0/0. Bazıları özel üst limitli)
 NOT: 0 = limitsiz anlamına gelir
 
+## HATAYA AÇIK NOKTALAR — Sorgu Yazarken DİKKAT
+
+### Tip Tuzakları (yanlış tip = 0 sonuç veya hata)
+| Kolon | Doğru tip | YANLIŞ kullanım | DOĞRU kullanım |
+|-------|-----------|-----------------|----------------|
+| `sites.status` | **boolean** | `WHERE status=1` | `WHERE status=true` |
+| `callback_status` | **boolean** | `WHERE callback_status=1` | `WHERE callback_status=true` |
+| `callback_is_dead_letter` | **boolean** | `WHERE callback_is_dead_letter=1` | `WHERE callback_is_dead_letter=true` |
+| `payment_transactions.status` | **smallint** | `WHERE status=true` | `WHERE status=1` |
+| `bank_accounts.status` | **smallint** | `WHERE status=true` | `WHERE status=1` |
+
+### Status Değerleri (EZBERLE)
+- `payment_transactions.status`: 0=Beklemede, 1=Onaylı, 3=Reddedildi (**2 YOK!**)
+- `bank_accounts.status`: 0=Pasif, 1=Aktif, 2=Bloke
+- `sites.status`: true=Aktif, false=Pasif (boolean!)
+
+### Soft Delete
+- `deleted_at IS NULL` → aktif kayıtlar (soft delete pattern)
+- Unutursan silinen kayıtlar da dahil olur → yanlış sayılar
+
+### Tarih/Saat
+- PostgreSQL timezone: UTC olabilir. Türkiye = UTC+3
+- `CURRENT_DATE` ve `NOW()` sunucu saatine göre. Fark varsa `AT TIME ZONE 'Europe/Istanbul'` kullan
+- `created_at` tüm ana tablolarda var
+
 ## Not
 - Sadece SELECT sorguları çalıştırılabilır
 - Tablo adları İngilizce, kolon adları İngilizce
-- callback_status boolean (true/false), integer değil
-- sites.status boolean (true/false), integer değil
 - Crypto tabloları aktif değil
 - pratik_gateway_transactions boş
 - audit_logs boş iskelet

@@ -39,7 +39,18 @@ _DOMAIN_PROMPTS = {
 - Veritabanı sorguları read-only. Veri değiştirme yok.
 - Sayısal verilerde kesin ol, varsayım yapma.
 - Analiz isteklerinde db_query ile sorgu çalıştır, sonuçları göster, yorumla.
-- "Durum sağlam" deme — sayılarla kanıtla. Karşılaştırma iste — SQL çalıştır.""",
+- "Durum sağlam" deme — sayılarla kanıtla. Karşılaştırma iste — SQL çalıştır.
+
+SORGU KURALLARI (KESİNLİKLE UYMALISIN):
+- "toplam yatırım/çekim" = SADECE onaylı (status=1). Bekleyen/reddedilen DAHİL DEĞİL.
+- "ciro" = onaylı yatırım toplamı (payment_type=1 AND status=1).
+- Tarih belirtilmezse BUGÜN varsay (created_at >= CURRENT_DATE).
+- sites.status ve callback_status BOOLEAN (true/false), integer DEĞİL.
+- payment_transactions.status SMALLINT (0,1,3). status=2 YOK.
+- bank_accounts.status SMALLINT (0=Pasif, 1=Aktif, 2=Bloke).
+- deleted_at IS NULL ekle — soft delete var.
+- Liste sorgularında LIMIT koy (max 50).
+- Varsayım YAPMA — emin değilsen önce schema'ya bak (db_schema tool).""",
 
     "support": """Destek modu aktif.
 - Sorun çözme odaklı çalış.

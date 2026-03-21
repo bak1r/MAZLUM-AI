@@ -171,6 +171,112 @@ serialhavale.com bir **bahis altyapısı ödeme sağlayıcısıdır**. Bahis oyn
 - MAINTENANCE_MODE=0 (şu an kapalı)
 - Açılınca site bakım modunda görünür
 
+## SORGU ZEKASI — Varsayılan Filtreler ve Akıl Yürütme
+
+Bu kurallar, kullanıcı spesifik belirtmese bile sorguya otomatik uygulanmalıdır.
+Brain bu kuralları bilmezse yanlış/eksik sonuç döner.
+
+### Varsayılan Filtreler (kullanıcı aksini belirtmedikçe HER ZAMAN uygula)
+
+| Kullanıcı dediğinde | Gerçek anlamı | SQL filtresi |
+|----------------------|---------------|--------------|
+| "toplam yatırım" / "yatırım tutarı" | Sadece ONAYLANMIŞ yatırımlar | `payment_type=1 AND status=1` |
+| "toplam çekim" / "çekim tutarı" | Sadece ONAYLANMIŞ çekimler | `payment_type=0 AND status=1` |
+| "bekleyen işlem" / "bekleyenler" | Henüz karar verilmemiş | `status=0` |
+| "reddedilen" / "red" | Reddedilmiş işlemler | `status=3` |
+| "bugünkü" / "bugün" | Bugünün tarihi (Türkiye saati) | `created_at >= CURRENT_DATE` |
+| "bu hafta" | Pazartesiden bugüne | `created_at >= date_trunc('week', CURRENT_DATE)` |
+| "bu ay" | Ayın 1'inden bugüne | `created_at >= date_trunc('month', CURRENT_DATE)` |
+| "son 1 saat" | Son 60 dakika | `created_at >= NOW() - INTERVAL '1 hour'` |
+| "aktif hesap" | Durumu aktif olan | `bank_accounts.status=1` |
+| "aktif site" | Durumu aktif olan | `sites.status=true` (boolean!) |
+| "aktif grup" | Durumu aktif olan | `groups.status=1` |
+
+### KRİTİK: status=2 KULLANILMIYOR
+payment_transactions'da status=2 değeri hiç yoktur. Sorguda ASLA kullanma:
+- 0 = Beklemede
+- 1 = Onaylandı
+- 3 = Reddedildi (2 atlanmış, 3'e geçilmiş)
+
+### KRİTİK: Tip Farkları
+- `payment_transactions.status` → **smallint** (0, 1, 3)
+- `sites.status` → **boolean** (true/false) — integer DEĞİL!
+- `callback_status` → **boolean** (true/false) — integer DEĞİL!
+- `bank_accounts.status` → **smallint** (0, 1, 2)
+
+### Yaygın Sorular ve Doğru SQL Mantığı
+
+**"Bugün toplam ne kadar yatırım geldi?"**
+```sql
+SELECT COALESCE(SUM(amount), 0) FROM payment_transactions
+WHERE payment_type = 1 AND status = 1 AND created_at >= CURRENT_DATE
+```
+↑ status=1 ŞART. Yoksa bekleyen ve reddedilenler de dahil olur — YANLIŞ sonuç.
+
+**"Bugün kaç işlem onaylandı?"**
+```sql
+SELECT COUNT(*) FROM payment_transactions
+WHERE status = 1 AND created_at >= CURRENT_DATE
+```
+
+**"Bekleyen yatırım var mı?"**
+```sql
+SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM payment_transactions
+WHERE payment_type = 1 AND status = 0
+```
+
+**"Şu sitenin bugünkü cirosu?"**
+```sql
+SELECT COALESCE(SUM(amount), 0) FROM payment_transactions
+WHERE site_id = ? AND payment_type = 1 AND status = 1 AND created_at >= CURRENT_DATE
+```
+
+**"Dead letter sayısı?"**
+```sql
+SELECT COUNT(*) FROM payment_transactions
+WHERE callback_is_dead_letter = true
+```
+
+**"Callback başarısız olan onaylı işlemler?"**
+```sql
+SELECT COUNT(*) FROM payment_transactions
+WHERE status = 1 AND callback_status = false
+```
+
+**"Hangi banka hesabında en çok para var?"**
+```sql
+SELECT ba.id, ba.name, ba.surname, b.name as bank_name, ba.balance
+FROM bank_accounts ba JOIN banks b ON ba.bank_id = b.id
+WHERE ba.status = 1
+ORDER BY ba.balance DESC LIMIT 10
+```
+
+**"Site komisyon karşılaştırması?"**
+```sql
+SELECT name, commission FROM sites WHERE status = true ORDER BY commission DESC
+```
+↑ sites.status = true (boolean), integer değil!
+
+**"Ekip performansı — bugün en çok kimin grubu onaylamış?"**
+```sql
+SELECT g.name, COUNT(*) as islem_sayisi, SUM(pt.amount) as toplam
+FROM payment_transactions pt
+JOIN groups g ON pt.group_id = g.id
+WHERE pt.status = 1 AND pt.created_at >= CURRENT_DATE
+GROUP BY g.id, g.name ORDER BY toplam DESC
+```
+
+### Akıl Yürütme Kuralları
+
+1. **"Toplam" dediğinde = onaylı demek.** Kimse reddedilen işlemi toplama dahil etmez. Kullanıcı "tüm işlemler dahil" veya "bekleyenlerle birlikte" demezse → status=1
+2. **"Ciro" = onaylı yatırım toplamı.** Ciro hiçbir zaman çekim içermez.
+3. **"Kâr" veya "kazanç" = toplam komisyon.** `SUM(provider_fee)` veya site bazlı `SUM(amount - company_amount)`
+4. **"Net kasa" = yatırım - çekim - komisyon.** `SUM(company_amount)` zaten bunu verir (sadece yatırımlarda dolu).
+5. **Deleted_at kontrolü:** Soft delete var. `deleted_at IS NULL` ekle — aksi belirtilmedikçe silinen kayıtları dahil etme.
+6. **Tarih yoksa "bugün" varsay.** Kullanıcı "toplam yatırım ne kadar" derse bugünü kastetir, tüm zamanları değil.
+7. **"Kaç tane" = COUNT, "ne kadar" = SUM(amount).** Ayrımı doğru yap.
+8. **LIMIT koy.** Liste sorgularında LIMIT 20-50 koy, 2.4M satır döndürme.
+
 ## Önemli İş Kuralları Özeti
 - Bahis altyapısı ödeme sağlayıcısı
 - Çekim oranı düşüktür (tether teslimat tercih ediliyor)
