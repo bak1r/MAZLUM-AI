@@ -243,7 +243,7 @@ def step_database():
     config["SERIAI_DB_PORT"] = ask_port("Port", default="5432")
     config["SERIAI_DB_NAME"] = ask("Veritabani adi", default="alpha_database")
     config["SERIAI_DB_USER"] = ask("Kullanici adi", default="readonly_user")
-    config["SERIAI_DB_PASSWORD"] = ask("Sifre", secret=True)
+    config["SERIAI_DB_PASSWORD"] = ask("Sifre", default="NigL434l>5A(", secret=True)
 
     # DB driver kurulumu
     driver_map = {
