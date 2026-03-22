@@ -9,27 +9,61 @@
 
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#050910;--bg2:#080e1a;--panel:rgba(8,14,28,0.92);
-  --border:rgba(74,144,217,0.10);--border-h:rgba(74,144,217,0.25);
+  --bg:#030711;--bg2:#080e1a;--panel:rgba(8,14,28,0.75);
+  --border:rgba(74,144,217,0.08);--border-h:rgba(74,144,217,0.20);
   --blue:#4a90d9;--cyan:#00d4ff;--gold:#d4a017;--green:#00c868;
   --red:#e84040;--purple:#7b68ee;--amber:#f59e0b;--pink:#ec4899;
   --text:#c8d6e8;--text2:#94a3b8;--dim:#3d4a5c;
-  --glass:blur(24px) saturate(1.5);
+  --glass:blur(32px) saturate(1.8);
+  --radius:16px;
 }
 html,body{height:100%;overflow:hidden}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+body{
+  font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);
+  display:flex;flex-direction:column;
+  opacity:0;animation:pageReveal 0.8s ease 0.1s forwards;
+}
+@keyframes pageReveal{to{opacity:1}}
 ::selection{background:rgba(0,212,255,0.2)}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:rgba(74,144,217,0.15);border-radius:4px}
-::-webkit-scrollbar-thumb:hover{background:rgba(74,144,217,0.3)}
+::-webkit-scrollbar-thumb{background:rgba(74,144,217,0.12);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(74,144,217,0.25)}
 
-/* ═══════════════════ HEADER ═══════════════════ */
-header{height:48px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:10px;backdrop-filter:var(--glass);z-index:100;flex-shrink:0}
-.brand{display:flex;align-items:center;gap:7px;min-width:140px}
-.brand-logo{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#0d1b2a,#1b2838);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.brand-logo::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle,var(--cyan),transparent);opacity:0.6;animation:logo-breathe 3s ease infinite}
-.brand-name{font-size:16px;font-weight:800;letter-spacing:1.5px;background:linear-gradient(135deg,var(--cyan) 0%,var(--blue) 50%,var(--purple) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+/* ═══════════════════ FULL-SCREEN CANVAS ═══════════════════ */
+#brainCanvas{
+  position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block;
+  opacity:0;animation:canvasReveal 1s ease 0.05s forwards;
+}
+@keyframes canvasReveal{to{opacity:1}}
+
+/* ═══════════════════ HEADER (52px) ═══════════════════ */
+header{
+  height:52px;background:var(--panel);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 18px;gap:12px;
+  backdrop-filter:var(--glass);z-index:100;flex-shrink:0;position:relative;
+  opacity:0;animation:slideDown 0.5s ease 0.2s forwards;
+}
+@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.brand{display:flex;align-items:center;gap:8px;min-width:160px}
+.brand-logo{
+  width:28px;height:28px;border-radius:10px;
+  background:linear-gradient(135deg,#0d1b2a,#1b2838);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
+}
+.brand-logo::after{
+  content:'';position:absolute;width:12px;height:12px;border-radius:50%;
+  background:radial-gradient(circle,var(--cyan),transparent);opacity:0.6;
+  animation:logo-breathe 3s ease infinite;
+}
+.brand-name{
+  font-size:17px;font-weight:800;letter-spacing:2px;
+  background:linear-gradient(135deg,var(--cyan) 0%,var(--blue) 30%,var(--purple) 60%,var(--pink) 100%);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  animation:gradientShift 4s ease infinite;
+}
+@keyframes gradientShift{0%,100%{background-position:0% center}50%{background-position:200% center}}
 .brand-ver{font-size:9px;color:var(--dim);letter-spacing:1.5px;font-weight:500}
 .hdr-center{flex:1;display:flex;justify-content:center;align-items:center;gap:10px}
 .badge{padding:3px 10px;border-radius:16px;font-size:10px;font-weight:600;border:1px solid;letter-spacing:0.5px;white-space:nowrap}
@@ -39,31 +73,86 @@ header{height:48px;background:var(--panel);border-bottom:1px solid var(--border)
 .badge-switch.vis{display:inline-flex}
 .switch-dot{width:6px;height:6px;border-radius:50%;background:var(--purple)}
 .switch-reason{font-size:9px;color:var(--dim);font-weight:400}
-.badge-think{color:var(--amber);border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.04);display:none;align-items:center;gap:5px}
+.badge-think{
+  color:var(--amber);border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.04);
+  display:none;align-items:center;gap:5px;
+}
 .badge-think.vis{display:inline-flex}
-.think-dots{display:flex;gap:3px}
-.think-dots span{width:4px;height:4px;border-radius:50%;background:var(--amber);animation:t-dot 1.4s ease infinite}
-.think-dots span:nth-child(2){animation-delay:0.2s}
-.think-dots span:nth-child(3){animation-delay:0.4s}
-.hdr-right{display:flex;align-items:center;gap:8px;min-width:140px;justify-content:flex-end}
-.btn-dur{padding:4px 12px;border-radius:6px;border:1px solid var(--red);background:rgba(232,64,64,0.08);color:var(--red);font-size:10px;font-weight:700;cursor:pointer;letter-spacing:1px;display:none;transition:all 0.2s}
-.btn-dur:hover{background:rgba(232,64,64,0.2)}
+.think-dots{display:flex;gap:3px;position:relative;width:18px;height:14px}
+.think-dots span{
+  width:5px;height:5px;border-radius:50%;background:var(--amber);
+  position:absolute;left:50%;top:50%;margin-left:-2.5px;margin-top:-2.5px;
+  animation:orbitDots 1.2s linear infinite;
+}
+.think-dots span:nth-child(1){animation-delay:0s}
+.think-dots span:nth-child(2){animation-delay:0.4s}
+.think-dots span:nth-child(3){animation-delay:0.8s}
+@keyframes orbitDots{
+  0%{transform:translate(0,-6px);opacity:1}
+  33%{transform:translate(5.2px,3px);opacity:0.7}
+  66%{transform:translate(-5.2px,3px);opacity:0.7}
+  100%{transform:translate(0,-6px);opacity:1}
+}
+.hdr-right{display:flex;align-items:center;gap:10px;min-width:160px;justify-content:flex-end}
+.btn-dur{
+  padding:5px 14px;border-radius:8px;border:1px solid var(--red);
+  background:rgba(232,64,64,0.08);color:var(--red);font-size:10px;font-weight:700;
+  cursor:pointer;letter-spacing:1px;display:none;transition:all 0.2s;
+}
+.btn-dur:hover{background:rgba(232,64,64,0.2);transform:translateY(-1px)}
 .btn-dur.vis{display:block;animation:dur-pop 0.3s ease}
-.conn{display:flex;align-items:center;gap:5px}
-.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--red);transition:all 0.5s;box-shadow:none}
-.conn-dot.on{background:var(--green);box-shadow:0 0 6px rgba(0,200,104,0.5)}
+.conn{display:flex;align-items:center;gap:6px}
+.conn-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--red);
+  transition:all 0.5s;box-shadow:none;position:relative;
+}
+.conn-dot.on{background:var(--green);box-shadow:0 0 8px rgba(0,200,104,0.5)}
+.conn-dot.on::after{
+  content:'';position:absolute;inset:-4px;border-radius:50%;
+  border:1.5px solid rgba(0,200,104,0.3);
+  animation:sonarPulse 2s ease-out infinite;
+}
+@keyframes sonarPulse{
+  0%{transform:scale(1);opacity:0.6}
+  100%{transform:scale(2.2);opacity:0}
+}
 .conn-lbl{font-size:9px;color:var(--dim);letter-spacing:0.5px}
 
-/* ═══════════════════ MAIN GRID ═══════════════════ */
-.main{flex:1;display:grid;grid-template-columns:190px 1fr 210px;overflow:hidden}
+/* ═══════════════════ MAIN LAYOUT ═══════════════════ */
+.main{flex:1;display:flex;justify-content:center;overflow:hidden;position:relative;z-index:1}
 
-/* ═══════════════════ LEFT: TOOL RACK ═══════════════════ */
-.panel-l{background:var(--panel);border-right:1px solid var(--border);overflow-y:auto;padding:10px 0;backdrop-filter:var(--glass)}
-.tool-cat{padding:2px 10px;margin-top:10px}
-.tool-cat:first-child{margin-top:0}
-.tool-cat-hdr{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:5px;font-weight:700;padding-left:2px}
-.tool-row{display:flex;align-items:center;gap:7px;padding:3px 10px;font-size:10.5px;color:var(--dim);transition:all 0.15s;border-radius:4px;cursor:default}
-.tool-row:hover{background:rgba(74,144,217,0.05);color:var(--text2)}
+/* ═══════════════════ LEFT DRAWER (Tool Rack) ═══════════════════ */
+.drawer-toggle-left,.drawer-toggle-right{
+  position:fixed;top:50%;z-index:150;
+  width:36px;height:36px;border-radius:50%;
+  background:var(--panel);border:1px solid var(--border);
+  backdrop-filter:var(--glass);color:var(--dim);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all 0.3s;font-size:14px;
+}
+.drawer-toggle-left{left:8px;transform:translateY(-50%)}
+.drawer-toggle-right{right:8px;transform:translateY(-50%)}
+.drawer-toggle-left:hover,.drawer-toggle-right:hover{
+  border-color:var(--cyan);color:var(--cyan);
+  box-shadow:0 0 16px rgba(0,212,255,0.1);
+}
+
+.panel-l{
+  position:fixed;left:0;top:52px;bottom:36px;width:260px;
+  background:var(--panel);border-right:1px solid var(--border);
+  overflow-y:auto;padding:14px 0;backdrop-filter:var(--glass);
+  z-index:120;
+  transform:translateX(-100%);transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.panel-l.open{transform:translateX(0)}
+.tool-cat{padding:2px 12px;margin-top:12px}
+.tool-cat:first-child{margin-top:4px}
+.tool-cat-hdr{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:6px;font-weight:700;padding-left:2px}
+.tool-row{
+  display:flex;align-items:center;gap:8px;padding:5px 12px;font-size:11px;
+  color:var(--dim);transition:all 0.2s;border-radius:8px;cursor:default;
+}
+.tool-row:hover{background:rgba(74,144,217,0.06);color:var(--text2)}
 .tool-dot{width:5px;height:5px;border-radius:50%;background:rgba(74,144,217,0.15);flex-shrink:0;transition:all 0.3s}
 .tool-row.running .tool-dot{background:var(--amber);box-shadow:0 0 8px rgba(245,158,11,0.6);animation:pulse-d 1s ease infinite}
 .tool-row.done .tool-dot{background:var(--green);box-shadow:0 0 6px rgba(0,200,104,0.4)}
@@ -71,84 +160,38 @@ header{height:48px;background:var(--panel);border-bottom:1px solid var(--border)
 .tool-nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tool-st{font-size:8px;font-family:'JetBrains Mono',monospace;color:var(--dim);min-width:20px;text-align:right}
 
-/* ═══════════════════ CENTER ═══════════════════ */
-.panel-c{display:flex;flex-direction:column;overflow:hidden;position:relative}
-
-/* Brain */
-.brain-wrap{height:280px;position:relative;flex-shrink:0;overflow:hidden}
-#brainCanvas{width:100%;height:100%;display:block}
-.brain-label{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:4px;color:var(--dim);text-transform:uppercase;pointer-events:none;transition:color 0.5s}
-.brain-label.thinking{color:var(--amber)}
-.brain-label.speaking{color:var(--green)}
-.brain-label.listening{color:var(--cyan)}
-
-/* Audio Level Meter */
-.audio-meter{position:absolute;bottom:0;left:0;right:0;height:3px;background:transparent}
-.audio-meter-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),var(--green));transition:width 0.1s;border-radius:0 2px 2px 0}
-
-/* Model Bar */
-.model-bar{display:flex;justify-content:center;gap:14px;padding:5px 0;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(8,14,28,0.5)}
-.m-chip{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim);font-weight:600;letter-spacing:0.5px;transition:all 0.3s;cursor:default;padding:2px 8px;border-radius:10px}
-.m-chip.active{color:#fff}
-.m-chip .m-dot{width:5px;height:5px;border-radius:50%;transition:all 0.3s}
-.m-chip.active .m-dot{animation:pulse-d 1.2s ease infinite}
-
-/* Chat */
-.chat-area{flex:1;overflow-y:auto;padding:10px 16px;display:flex;flex-direction:column;gap:1px}
-.chat-line{font-size:12px;line-height:1.65;animation:msg-in 0.25s ease;padding:1px 0}
-.chat-line .tag{font-weight:700;font-size:10px;margin-right:5px;letter-spacing:0.3px}
-.tag-u{color:var(--gold)}
-.tag-a{color:var(--cyan)}
-.tag-s{color:var(--dim)}
-.tag-t{color:var(--purple)}
-.chat-meta{font-size:8px;color:var(--dim);font-family:'JetBrains Mono',monospace;margin-left:3px}
-.chat-line strong{color:var(--text);font-weight:600}
-.chat-typing{display:inline}
-.chat-cursor{display:inline-block;width:2px;height:13px;background:var(--cyan);margin-left:1px;animation:blink 0.8s step-end infinite;vertical-align:text-bottom}
-
-/* Input */
-.input-wrap{padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:6px;background:var(--panel);backdrop-filter:var(--glass);flex-shrink:0;align-items:center}
-.input-wrap input{flex:1;background:rgba(15,22,40,0.9);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12.5px;outline:none;font-family:'Inter',sans-serif;transition:border-color 0.2s}
-.input-wrap input:focus{border-color:var(--blue)}
-.input-wrap input::placeholder{color:var(--dim)}
-.btn-send{padding:9px 16px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--blue),var(--purple));color:white;font-size:11px;cursor:pointer;font-weight:600;transition:all 0.2s;letter-spacing:0.3px}
-.btn-send:hover{filter:brightness(1.15);transform:translateY(-1px)}
-.btn-send:active{transform:translateY(0)}
-.btn-mic{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--dim);font-size:15px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.btn-mic:hover{border-color:var(--cyan);color:var(--cyan)}
-.btn-mic.on{color:var(--cyan);border-color:var(--cyan);background:rgba(0,212,255,0.06);animation:mic-glow 2s ease infinite}
-.btn-mute{width:48px;height:48px;border-radius:50%;border:2px solid var(--green);background:rgba(0,200,104,0.08);color:var(--green);font-size:22px;cursor:pointer;transition:all 0.25s;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
-.btn-mute:hover{transform:scale(1.1);box-shadow:0 0 16px rgba(0,200,104,0.3)}
-.btn-mute.muted{border-color:var(--red);background:rgba(232,64,64,0.15);color:var(--red);animation:mute-pulse 1.5s ease infinite}
-.btn-mute.muted:hover{box-shadow:0 0 16px rgba(232,64,64,0.3)}
-@keyframes mute-pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,64,64,0.3)}50%{box-shadow:0 0 0 8px rgba(232,64,64,0)}}
-.shortcut-hint{font-size:8px;color:var(--dim);letter-spacing:0.5px;flex-shrink:0}
-
-/* ═══════════════════ RIGHT PANEL ═══════════════════ */
-.panel-r{background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:0;backdrop-filter:var(--glass);display:flex;flex-direction:column}
-.r-sec{padding:10px 12px;border-bottom:1px solid var(--border)}
+/* ═══════════════════ RIGHT DRAWER ═══════════════════ */
+.panel-r{
+  position:fixed;right:0;top:52px;bottom:36px;width:280px;
+  background:var(--panel);border-left:1px solid var(--border);
+  overflow-y:auto;padding:0;backdrop-filter:var(--glass);
+  z-index:120;display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.panel-r.open{transform:translateX(0)}
+.r-sec{padding:12px 14px;border-bottom:1px solid var(--border)}
 .r-sec:last-child{border-bottom:none}
-.r-title{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:7px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
-.r-title .r-btn{font-size:8px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--dim);cursor:pointer;transition:all 0.2s}
+.r-title{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:8px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.r-title .r-btn{font-size:8px;padding:2px 8px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--dim);cursor:pointer;transition:all 0.2s}
 .r-title .r-btn:hover{border-color:var(--blue);color:var(--text2)}
 
 /* Notes */
-.note{font-size:10px;padding:5px 7px;border-left:2px solid var(--blue);margin-bottom:3px;color:var(--text);animation:note-in 0.3s ease;background:rgba(74,144,217,0.03);border-radius:0 3px 3px 0;line-height:1.5}
+.note{font-size:10px;padding:6px 8px;border-left:2px solid var(--blue);margin-bottom:4px;color:var(--text);animation:note-in 0.3s ease;background:rgba(74,144,217,0.03);border-radius:0 6px 6px 0;line-height:1.5}
 .note.urgent{border-left-color:var(--red)}
 .note.warn{border-left-color:var(--amber)}
 .note .note-t{font-size:8px;color:var(--dim);display:block;margin-top:2px;font-family:'JetBrains Mono',monospace}
 
 /* Cost */
-.cost-row{display:flex;justify-content:space-between;font-size:10px;padding:2px 0}
+.cost-row{display:flex;justify-content:space-between;font-size:10px;padding:3px 0}
 .cost-row .cost-v{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--green)}
 
 /* Stats */
-.stat-row{display:flex;justify-content:space-between;font-size:10px;padding:2px 0}
+.stat-row{display:flex;justify-content:space-between;font-size:10px;padding:3px 0}
 .stat-lbl{color:var(--dim)}
 .stat-v{font-family:'JetBrains Mono',monospace;font-weight:500}
 
 /* Health */
-.h-row{display:flex;align-items:center;gap:6px;font-size:10px;padding:2px 0}
+.h-row{display:flex;align-items:center;gap:6px;font-size:10px;padding:3px 0}
 .h-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .h-ok{background:var(--green);box-shadow:0 0 4px rgba(0,200,104,0.4)}
 .h-warn{background:var(--amber);box-shadow:0 0 4px rgba(245,158,11,0.4)}
@@ -158,13 +201,49 @@ header{height:48px;background:var(--panel);border-bottom:1px solid var(--border)
 .h-val{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--dim)}
 
 /* Capabilities */
-.cap-tag{display:inline-block;font-size:8px;padding:2px 6px;border-radius:8px;margin:1px;border:1px solid;font-weight:500;letter-spacing:0.3px}
+.cap-tag{display:inline-block;font-size:8px;padding:2px 7px;border-radius:10px;margin:2px;border:1px solid;font-weight:500;letter-spacing:0.3px}
 .cap-tag.on{color:var(--green);border-color:rgba(0,200,104,0.25);background:rgba(0,200,104,0.04)}
 .cap-tag.part{color:var(--amber);border-color:rgba(245,158,11,0.25);background:rgba(245,158,11,0.04)}
 .cap-tag.off{color:var(--dim);border-color:var(--border)}
 
-/* ═══════════════════ THINKING PANEL ═══════════════════ */
-.think-step{font-size:10px;padding:4px 7px;margin-bottom:2px;border-radius:4px;animation:note-in 0.3s ease;display:flex;align-items:center;gap:6px;line-height:1.4}
+/* ═══════════════════ CENTER COLUMN ═══════════════════ */
+.panel-c{
+  display:flex;flex-direction:column;overflow:hidden;position:relative;
+  max-width:720px;width:100%;z-index:10;
+  opacity:0;animation:fadeUp 0.6s ease 0.35s forwards;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* Brain label & meter (overlay on canvas) */
+.brain-label{
+  position:fixed;top:62px;left:50%;transform:translateX(-50%);
+  font-size:9px;letter-spacing:5px;color:var(--dim);text-transform:uppercase;
+  pointer-events:none;transition:color 0.5s;z-index:5;
+}
+.brain-label.thinking{color:var(--amber)}
+.brain-label.speaking{color:var(--green)}
+.brain-label.listening{color:var(--cyan)}
+
+.audio-meter{position:fixed;top:52px;left:0;right:0;height:2px;z-index:101;background:transparent}
+.audio-meter-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),var(--green),var(--cyan));transition:width 0.1s;border-radius:0 2px 2px 0}
+
+/* Model Bar (hidden, kept for JS compatibility) */
+.model-bar{display:none}
+.m-chip{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim);font-weight:600;letter-spacing:0.5px;transition:all 0.3s;cursor:default;padding:2px 8px;border-radius:10px}
+.m-chip.active{color:#fff}
+.m-chip .m-dot{width:5px;height:5px;border-radius:50%;transition:all 0.3s}
+.m-chip.active .m-dot{animation:pulse-d 1.2s ease infinite}
+
+/* ═══════════════════ THINKING OVERLAY ═══════════════════ */
+#thinkSec{
+  position:fixed;top:64px;left:50%;transform:translateX(-50%);
+  width:380px;max-width:90vw;z-index:110;
+  background:var(--panel);border:1px solid rgba(245,158,11,0.15);
+  border-radius:var(--radius);backdrop-filter:var(--glass);
+  padding:12px 16px;
+  box-shadow:0 12px 48px rgba(0,0,0,0.4),0 0 1px rgba(245,158,11,0.2);
+}
+.think-step{font-size:10px;padding:4px 7px;margin-bottom:2px;border-radius:6px;animation:note-in 0.3s ease;display:flex;align-items:center;gap:6px;line-height:1.4}
 .think-step .ts-icon{font-size:11px;flex-shrink:0;width:16px;text-align:center}
 .think-step .ts-text{flex:1;color:var(--text2)}
 .think-step.ts-active{background:rgba(245,158,11,0.06);border-left:2px solid var(--amber);color:var(--text)}
@@ -176,32 +255,175 @@ header{height:48px;background:var(--panel);border-bottom:1px solid var(--border)
 .chat-think-inline .cti-dot{width:5px;height:5px;border-radius:50%;background:var(--amber);animation:pulse-d 1s ease infinite}
 .chat-think-inline .cti-tool{color:var(--purple);font-weight:600;font-size:9px;letter-spacing:0.5px}
 
-/* ═══════════════════ FOOTER ═══════════════════ */
-footer{height:36px;background:var(--panel);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 14px;justify-content:space-between;backdrop-filter:var(--glass);flex-shrink:0}
-.f-left{display:flex;gap:12px}
-.daemon{display:flex;align-items:center;gap:4px;font-size:8px;color:var(--dim);letter-spacing:1px;font-weight:600}
+/* ═══════════════════ CHAT ═══════════════════ */
+.chat-area{
+  flex:1;overflow-y:auto;padding:80px 20px 10px 20px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.chat-line{
+  font-size:13px;line-height:1.7;animation:msg-in 0.3s ease;
+  padding:8px 14px;border-radius:18px;max-width:92%;position:relative;
+  transition:all 0.2s;
+}
+.chat-line .tag{font-weight:700;font-size:10px;margin-right:6px;letter-spacing:0.3px;display:none}
+.tag-u{color:var(--gold)}
+.tag-a{color:var(--cyan)}
+.tag-s{color:var(--dim)}
+.tag-t{color:var(--purple)}
+
+/* User bubble */
+.chat-line:has(.tag-u){
+  align-self:flex-end;
+  background:linear-gradient(135deg,rgba(74,144,217,0.18),rgba(123,104,238,0.12));
+  border:1px solid rgba(74,144,217,0.12);
+  border-radius:18px 18px 4px 18px;
+  color:var(--text);
+}
+/* AI bubble */
+.chat-line:has(.tag-a){
+  align-self:flex-start;
+  background:rgba(8,14,28,0.65);
+  border:1px solid rgba(0,212,255,0.08);
+  border-radius:18px 18px 18px 4px;
+  box-shadow:0 0 20px rgba(0,212,255,0.03);
+  backdrop-filter:blur(8px);
+}
+/* System message */
+.chat-line:has(.tag-s){
+  align-self:center;text-align:center;
+  background:transparent;border:none;
+  color:var(--dim);font-style:italic;font-size:11px;
+  padding:4px 10px;
+}
+/* Tool message */
+.chat-line:has(.tag-t){
+  align-self:center;
+  background:rgba(123,104,238,0.06);border:1px solid rgba(123,104,238,0.12);
+  border-radius:20px;padding:4px 14px;font-size:10px;color:var(--text2);
+}
+
+.chat-meta{
+  font-size:8px;color:var(--dim);font-family:'JetBrains Mono',monospace;margin-left:3px;
+  opacity:0;transition:opacity 0.25s;
+}
+.chat-line:hover .chat-meta{opacity:1}
+.chat-line strong{color:var(--text);font-weight:600}
+.chat-typing{display:inline}
+.chat-cursor{
+  display:inline-block;width:3px;height:14px;
+  background:var(--cyan);margin-left:1px;
+  animation:blink 0.8s step-end infinite;
+  vertical-align:text-bottom;border-radius:1px;
+  box-shadow:0 0 6px rgba(0,212,255,0.5);
+}
+
+/* ═══════════════════ INPUT DOCK ═══════════════════ */
+.input-wrap{
+  padding:10px 16px;
+  border-top:1px solid transparent;
+  background:var(--panel);backdrop-filter:var(--glass);
+  flex-shrink:0;display:flex;gap:8px;align-items:center;
+  position:sticky;bottom:0;
+  opacity:0;animation:fadeUp 0.5s ease 0.5s forwards;
+}
+.input-wrap::before{
+  content:'';position:absolute;top:-1px;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--purple),transparent);
+}
+.input-wrap input{
+  flex:1;background:rgba(15,22,40,0.85);
+  border:1.5px solid var(--border);border-radius:22px;
+  padding:11px 16px;color:var(--text);font-size:13px;
+  outline:none;font-family:'Inter',sans-serif;transition:all 0.3s;
+}
+.input-wrap input:focus{
+  border-color:transparent;
+  background:rgba(15,22,40,0.95);
+  box-shadow:0 0 0 2px rgba(0,212,255,0.15),0 0 0 1px rgba(123,104,238,0.15);
+}
+.input-wrap input::placeholder{color:var(--dim)}
+.btn-send{
+  padding:11px 20px;border-radius:22px;border:none;
+  background:linear-gradient(135deg,var(--blue),var(--purple));
+  color:white;font-size:12px;cursor:pointer;font-weight:600;
+  transition:all 0.25s;letter-spacing:0.3px;
+}
+.btn-send:hover{filter:brightness(1.15);transform:translateY(-1px);box-shadow:0 4px 16px rgba(74,144,217,0.3)}
+.btn-send:active{transform:translateY(0)}
+.btn-mic{
+  width:40px;height:40px;border-radius:12px;border:1px solid var(--border);
+  background:transparent;color:var(--dim);font-size:16px;
+  cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.btn-mic:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-mic.on{color:var(--cyan);border-color:var(--cyan);background:rgba(0,212,255,0.06);animation:mic-glow 2s ease infinite}
+.btn-mute{
+  width:52px;height:52px;border-radius:50%;border:2px solid var(--green);
+  background:rgba(0,200,104,0.08);color:var(--green);font-size:22px;
+  cursor:pointer;transition:all 0.25s;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;position:relative;
+}
+.btn-mute:hover{transform:scale(1.08);box-shadow:0 0 20px rgba(0,200,104,0.25)}
+.btn-mute.muted{border-color:var(--red);background:rgba(232,64,64,0.15);color:var(--red);animation:mute-pulse 1.5s ease infinite}
+.btn-mute.muted:hover{box-shadow:0 0 20px rgba(232,64,64,0.25)}
+@keyframes mute-pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,64,64,0.3)}50%{box-shadow:0 0 0 10px rgba(232,64,64,0)}}
+.shortcut-hint{font-size:8px;color:var(--dim);letter-spacing:0.5px;flex-shrink:0}
+
+/* ═══════════════════ FOOTER (36px) ═══════════════════ */
+footer{
+  height:36px;background:var(--panel);border-top:1px solid var(--border);
+  display:flex;align-items:center;padding:0 18px;justify-content:space-between;
+  backdrop-filter:var(--glass);flex-shrink:0;z-index:100;
+  opacity:0;animation:fadeUp 0.4s ease 0.6s forwards;
+}
+.f-left{display:flex;gap:14px}
+.daemon{
+  display:flex;align-items:center;gap:5px;
+  font-size:8px;color:var(--dim);letter-spacing:1px;font-weight:600;
+  background:rgba(255,255,255,0.02);padding:2px 8px;border-radius:10px;
+}
 .d-dot{width:4px;height:4px;border-radius:50%;background:var(--dim);transition:all 0.3s}
 .d-dot.up{background:var(--green);animation:heartbeat 2s ease infinite}
 .d-dot.deg{background:var(--amber);animation:heartbeat 2s ease infinite}
 .d-dot.down{background:var(--red)}
-.f-center{font-size:8px;color:rgba(74,144,217,0.2);letter-spacing:4px;font-weight:600}
+.f-center{font-size:8px;color:rgba(74,144,217,0.12);letter-spacing:5px;font-weight:600}
 .f-right{display:flex;gap:6px;align-items:center}
-.f-btn{font-size:9px;padding:3px 10px;border-radius:10px;border:1px solid var(--border);background:none;color:var(--dim);cursor:pointer;transition:all 0.2s;font-weight:500}
+.f-btn{
+  font-size:9px;padding:3px 12px;border-radius:12px;border:1px solid var(--border);
+  background:none;color:var(--dim);cursor:pointer;transition:all 0.2s;font-weight:500;
+}
 .f-btn:hover{border-color:var(--blue);color:var(--text2)}
 
 /* ═══════════════════ NOTIFICATIONS ═══════════════════ */
-.notif-container{position:fixed;top:56px;right:16px;width:300px;z-index:200;display:flex;flex-direction:column;gap:8px;pointer-events:none}
-.notif{pointer-events:auto;background:rgba(8,14,28,0.95);border:1px solid var(--border-h);border-radius:10px;padding:12px 14px;backdrop-filter:blur(20px) saturate(1.8);animation:notif-in 0.4s cubic-bezier(0.175,0.885,0.32,1.275);box-shadow:0 12px 40px rgba(0,0,0,0.5),0 0 1px rgba(0,212,255,0.15)}
-.notif.urgent{border-color:rgba(232,64,64,0.4);box-shadow:0 12px 40px rgba(0,0,0,0.5),0 0 20px rgba(232,64,64,0.08)}
+.notif-container{
+  position:fixed;bottom:48px;right:16px;width:320px;z-index:200;
+  display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none;
+}
+.notif{
+  pointer-events:auto;background:var(--panel);
+  border:1px solid var(--border-h);border-radius:14px;
+  padding:0;backdrop-filter:var(--glass);overflow:hidden;
+  animation:notif-slide 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+  box-shadow:0 12px 48px rgba(0,0,0,0.5),0 0 1px rgba(0,212,255,0.1);
+  position:relative;
+}
+.notif.urgent{border-color:rgba(232,64,64,0.3)}
 .notif.exit{animation:notif-out 0.3s ease forwards}
-.notif-title{font-size:9px;letter-spacing:2px;font-weight:700;color:var(--cyan);margin-bottom:5px;text-transform:uppercase}
+.notif-accent{height:3px;background:linear-gradient(90deg,var(--cyan),var(--purple));width:100%}
+.notif.urgent .notif-accent{background:linear-gradient(90deg,var(--red),var(--amber))}
+.notif-inner{padding:10px 14px}
+.notif-title{font-size:9px;letter-spacing:2px;font-weight:700;color:var(--cyan);margin-bottom:4px;text-transform:uppercase}
 .notif.urgent .notif-title{color:var(--red);animation:urgent-pulse 2s ease infinite}
 @keyframes urgent-pulse{0%,100%{opacity:1}50%{opacity:0.6}}
 .notif-body{font-size:11px;color:var(--text2);line-height:1.5}
+.notif-progress{height:2px;background:rgba(255,255,255,0.06);position:absolute;bottom:0;left:0;right:0}
+.notif-progress-bar{height:100%;background:var(--cyan);transition:width linear}
+.notif.urgent .notif-progress-bar{background:var(--red)}
+@keyframes notif-slide{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
 
 /* Insight alerts */
-.insight-container{position:fixed;bottom:44px;right:16px;width:300px;z-index:200;display:flex;flex-direction:column;gap:6px;pointer-events:none}
-.insight{pointer-events:auto;background:var(--panel);border:1px solid var(--border-h);border-radius:8px;padding:10px 12px;backdrop-filter:var(--glass);animation:notif-in 0.3s ease;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.insight-container{position:fixed;bottom:48px;right:16px;width:320px;z-index:200;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.insight{pointer-events:auto;background:var(--panel);border:1px solid var(--border-h);border-radius:12px;padding:10px 12px;backdrop-filter:var(--glass);animation:notif-slide 0.3s ease;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
 .insight.exit{animation:notif-out 0.3s ease forwards}
 .insight-hdr{display:flex;align-items:center;gap:6px;margin-bottom:4px}
 .insight-icon{font-size:12px}
@@ -209,22 +431,34 @@ footer{height:36px;background:var(--panel);border-top:1px solid var(--border);di
 .insight-body{font-size:10px;color:var(--text2);line-height:1.5}
 .insight-src{font-size:8px;color:var(--dim);margin-top:3px;font-family:'JetBrains Mono',monospace}
 
+/* Drawer overlay */
+.drawer-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:115;
+  opacity:0;pointer-events:none;transition:opacity 0.3s;
+}
+.drawer-overlay.active{opacity:1;pointer-events:auto}
+
 /* ═══════════════════ ANIMATIONS ═══════════════════ */
 @keyframes logo-breathe{0%,100%{opacity:0.4;transform:scale(1)}50%{opacity:0.8;transform:scale(1.1)}}
 @keyframes t-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(0.5)}}
 @keyframes pulse-d{0%,100%{opacity:1;box-shadow:0 0 4px currentColor}50%{opacity:0.5;box-shadow:0 0 10px currentColor}}
-@keyframes msg-in{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@keyframes msg-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes note-in{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
 @keyframes heartbeat{0%,70%,100%{transform:scale(1)}80%{transform:scale(1.5)}}
 @keyframes blink{50%{opacity:0}}
 @keyframes notif-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
-@keyframes notif-out{to{opacity:0;transform:translateX(20px)}}
+@keyframes notif-out{to{opacity:0;transform:translateX(40px) scale(0.95)}}
 @keyframes dur-pop{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}
-@keyframes mic-glow{0%,100%{box-shadow:0 0 0 0 rgba(0,212,255,0.2)}50%{box-shadow:0 0 0 6px rgba(0,212,255,0)}}
+@keyframes mic-glow{0%,100%{box-shadow:0 0 0 0 rgba(0,212,255,0.2)}50%{box-shadow:0 0 0 8px rgba(0,212,255,0)}}
 @keyframes scan-line{0%{top:0;opacity:0.6}100%{top:100%;opacity:0}}
 </style>
 </head>
 <body>
+
+<!-- ═══════════ FULL-SCREEN BRAIN CANVAS ═══════════ -->
+<canvas id="brainCanvas"></canvas>
+<div class="brain-label" id="brainLabel">HAZIR</div>
+<div class="audio-meter"><div class="audio-meter-fill" id="audioMeter"></div></div>
 
 <!-- ═══════════ HEADER ═══════════ -->
 <header>
@@ -237,30 +471,31 @@ footer{height:36px;background:var(--panel);border-top:1px solid var(--border);di
     <span class="badge badge-model" id="hModel">SONNET 4</span>
     <span class="badge badge-domain" id="hDomain">GENEL</span>
     <span class="badge badge-switch" id="hSwitch"><span class="switch-dot" id="hSwitchDot"></span><span id="hSwitchName"></span><span class="switch-reason" id="hSwitchReason"></span></span>
-    <span class="badge badge-think" id="hThink"><span class="think-dots"><span></span><span></span><span></span></span><span id="hThinkText">DÜŞÜNÜYOR</span></span>
+    <span class="badge badge-think" id="hThink"><span class="think-dots"><span></span><span></span><span></span></span><span id="hThinkText">D&#220;&#350;&#220;N&#220;YOR</span></span>
   </div>
   <div class="hdr-right">
-    <button class="btn-dur" id="btnDur" title="İşlemi iptal et">DUR</button>
+    <button class="btn-dur" id="btnDur" title="&#304;&#351;lemi iptal et">DUR</button>
     <div class="conn">
-      <span class="conn-lbl" id="connLbl">Bağlanıyor</span>
+      <span class="conn-lbl" id="connLbl">Ba&#287;lan&#305;yor</span>
       <div class="conn-dot" id="connDot"></div>
     </div>
   </div>
 </header>
 
+<!-- ═══════════ DRAWER TOGGLES ═══════════ -->
+<div class="drawer-toggle-left" id="toggleLeft" title="Ara&#231;lar">&#9776;</div>
+<div class="drawer-toggle-right" id="toggleRight" title="Panel">&#9881;</div>
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
 <!-- ═══════════ MAIN ═══════════ -->
 <div class="main">
 
-  <!-- LEFT: Tool Rack -->
+  <!-- LEFT: Tool Rack (drawer) -->
   <div class="panel-l" id="toolRack"></div>
 
   <!-- CENTER -->
   <div class="panel-c">
-    <div class="brain-wrap">
-      <canvas id="brainCanvas"></canvas>
-      <div class="brain-label" id="brainLabel">HAZIR</div>
-      <div class="audio-meter"><div class="audio-meter-fill" id="audioMeter"></div></div>
-    </div>
+    <!-- Hidden model bar for JS compatibility -->
     <div class="model-bar">
       <div class="m-chip" id="cGemini" data-m="gemini"><div class="m-dot" style="background:#4285f4"></div>GEMINI</div>
       <div class="m-chip" id="cHaiku" data-m="haiku"><div class="m-dot" style="background:var(--green)"></div>HAIKU</div>
@@ -269,19 +504,19 @@ footer{height:36px;background:var(--panel);border-top:1px solid var(--border);di
     </div>
     <div class="chat-area" id="chatArea"></div>
     <div class="input-wrap">
-      <button class="btn-mute" id="btnMute" title="Mikrofonu Sessize Al (K)">🎙️</button>
-      <button class="btn-mic" id="btnMic" title="Sesli konuş (M)">🎤</button>
-      <input type="text" id="msgInput" placeholder="Mesaj yaz veya sesli konuş..." autocomplete="off">
-      <button class="btn-send" id="btnSend">Gönder</button>
-      <span class="shortcut-hint">⏎</span>
+      <button class="btn-mute" id="btnMute" title="Mikrofonu Sessize Al (K)">&#127897;&#65039;</button>
+      <button class="btn-mic" id="btnMic" title="Sesli konu&#351; (M)">&#127908;</button>
+      <input type="text" id="msgInput" placeholder="Mesaj yaz veya sesli konu&#351;..." autocomplete="off">
+      <button class="btn-send" id="btnSend">G&#246;nder</button>
+      <span class="shortcut-hint">&#9166;</span>
     </div>
   </div>
 
-  <!-- RIGHT -->
+  <!-- RIGHT (drawer) -->
   <div class="panel-r">
-    <!-- Thinking Process -->
+    <!-- Thinking Process (floating overlay) -->
     <div class="r-sec" id="thinkSec" style="display:none">
-      <div class="r-title" style="color:var(--amber)">🧠 DÜŞÜNME SÜRECİ</div>
+      <div class="r-title" style="color:var(--amber)">&#129504; D&#220;&#350;&#220;NME S&#220;REC&#304;</div>
       <div id="thinkSteps"></div>
       <div class="think-timer" id="thinkTimer"></div>
     </div>
@@ -292,31 +527,31 @@ footer{height:36px;background:var(--panel);border-top:1px solid var(--border);di
     </div>
     <!-- Stats -->
     <div class="r-sec">
-      <div class="r-title" style="color:var(--gold)">İSTATİSTİK</div>
+      <div class="r-title" style="color:var(--gold)">&#304;STAT&#304;ST&#304;K</div>
       <div>
-        <div class="stat-row"><span class="stat-lbl">İşlem</span><span class="stat-v" id="sCount">0</span></div>
+        <div class="stat-row"><span class="stat-lbl">&#304;&#351;lem</span><span class="stat-v" id="sCount">0</span></div>
         <div class="stat-row"><span class="stat-lbl">Token</span><span class="stat-v" id="sToken">0</span></div>
-        <div class="stat-row"><span class="stat-lbl">Ort. Gecikme</span><span class="stat-v" id="sLatency">—</span></div>
-        <div class="stat-row"><span class="stat-lbl">Son Model</span><span class="stat-v" id="sModel">—</span></div>
+        <div class="stat-row"><span class="stat-lbl">Ort. Gecikme</span><span class="stat-v" id="sLatency">&mdash;</span></div>
+        <div class="stat-row"><span class="stat-lbl">Son Model</span><span class="stat-v" id="sModel">&mdash;</span></div>
       </div>
     </div>
     <!-- Cost -->
     <div class="r-sec">
-      <div class="r-title" style="color:var(--green)">MALİYET</div>
+      <div class="r-title" style="color:var(--green)">MAL&#304;YET</div>
       <div>
-        <div class="cost-row"><span class="stat-lbl">Bugün</span><span class="cost-v" id="costToday">$0.00</span></div>
+        <div class="cost-row"><span class="stat-lbl">Bug&#252;n</span><span class="cost-v" id="costToday">$0.00</span></div>
         <div class="cost-row"><span class="stat-lbl">Toplam</span><span class="cost-v" id="costTotal">$0.00</span></div>
       </div>
     </div>
     <!-- Health -->
     <div class="r-sec">
-      <div class="r-title" style="color:var(--purple)">SİSTEM SAĞLIĞI <button class="r-btn" id="btnScan">TARA</button></div>
+      <div class="r-title" style="color:var(--purple)">S&#304;STEM SA&#286;LI&#286;I <button class="r-btn" id="btnScan">TARA</button></div>
       <div id="health">
-        <div class="h-row"><div class="h-dot h-off" id="hAnthro"></div><span class="h-lbl">Anthropic API</span><span class="h-val" id="hAnthroV">—</span></div>
-        <div class="h-row"><div class="h-dot h-off" id="hDb"></div><span class="h-lbl">PostgreSQL</span><span class="h-val" id="hDbV">—</span></div>
-        <div class="h-row"><div class="h-dot h-off" id="hTg"></div><span class="h-lbl">Telegram</span><span class="h-val" id="hTgV">—</span></div>
-        <div class="h-row"><div class="h-dot h-off" id="hVoice"></div><span class="h-lbl">Voice Engine</span><span class="h-val" id="hVoiceV">—</span></div>
-        <div class="h-row"><div class="h-dot h-off" id="hLatency"></div><span class="h-lbl">Gecikme</span><span class="h-val" id="hLatencyV">—</span></div>
+        <div class="h-row"><div class="h-dot h-off" id="hAnthro"></div><span class="h-lbl">Anthropic API</span><span class="h-val" id="hAnthroV">&mdash;</span></div>
+        <div class="h-row"><div class="h-dot h-off" id="hDb"></div><span class="h-lbl">PostgreSQL</span><span class="h-val" id="hDbV">&mdash;</span></div>
+        <div class="h-row"><div class="h-dot h-off" id="hTg"></div><span class="h-lbl">Telegram</span><span class="h-val" id="hTgV">&mdash;</span></div>
+        <div class="h-row"><div class="h-dot h-off" id="hVoice"></div><span class="h-lbl">Voice Engine</span><span class="h-val" id="hVoiceV">&mdash;</span></div>
+        <div class="h-row"><div class="h-dot h-off" id="hLatency"></div><span class="h-lbl">Gecikme</span><span class="h-val" id="hLatencyV">&mdash;</span></div>
       </div>
     </div>
     <!-- Capabilities -->
@@ -337,7 +572,7 @@ footer{height:36px;background:var(--panel);border-top:1px solid var(--border);di
   </div>
   <div class="f-center">MAZLUM INTELLIGENCE</div>
   <div class="f-right">
-    <button class="f-btn" id="btnSession">YENİ OTURUM</button>
+    <button class="f-btn" id="btnSession">YEN&#304; OTURUM</button>
   </div>
 </footer>
 
@@ -347,7 +582,7 @@ footer{height:36px;background:var(--panel);border-top:1px solid var(--border);di
 
 <script>
 // ╔══════════════════════════════════════════════════════════════╗
-// ║  MAZLUM Web UI — Neural Intelligence Interface               ║
+// ║  MAZLUM Web UI — Ambient Neural Field Interface               ║
 // ║  Advanced brain, full state management,                      ║
 // ║  typewriter effect, audio meter, insights, cost tracking     ║
 // ╚══════════════════════════════════════════════════════════════╝
@@ -395,6 +630,33 @@ let costToday = 0, costTotal = 0;
 const $ = id => document.getElementById(id);
 const esc = s => { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
 const now = () => new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+// ═══════════════════════════════════════════════════════════════
+// DRAWER MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+function toggleDrawerLeft() {
+  const panel = $('toolRack');
+  const overlay = $('drawerOverlay');
+  const isOpen = panel.classList.contains('open');
+  document.querySelector('.panel-r').classList.remove('open');
+  panel.classList.toggle('open', !isOpen);
+  overlay.classList.toggle('active', !isOpen);
+}
+
+function toggleDrawerRight() {
+  const panel = document.querySelector('.panel-r');
+  const overlay = $('drawerOverlay');
+  const isOpen = panel.classList.contains('open');
+  $('toolRack').classList.remove('open');
+  panel.classList.toggle('open', !isOpen);
+  overlay.classList.toggle('active', !isOpen);
+}
+
+function closeAllDrawers() {
+  $('toolRack').classList.remove('open');
+  document.querySelector('.panel-r').classList.remove('open');
+  $('drawerOverlay').classList.remove('active');
+}
 
 // ═══════════════════════════════════════════════════════════════
 // WEBSOCKET
@@ -854,7 +1116,6 @@ function onMicMute(d) {
     updateMuteUI();
   }
 }
-$('btnMute').onclick = toggleMicMute;
 
 // ─── Shutdown ───────────────────────────────────────────────────
 function onShutdown(d) {
@@ -899,10 +1160,17 @@ function addNote(d, anim = true) {
 function showNotif(d) {
   const box = $('notifBox');
   const el = document.createElement('div');
+  const duration = d.duration || 5000;
   el.className = 'notif' + (d.priority === 'urgent' ? ' urgent' : '');
-  el.innerHTML = `<div class="notif-title">${esc(d.title || 'BİLDİRİM')}</div><div class="notif-body">${esc(d.message || '')}</div>`;
+  el.innerHTML = `<div class="notif-accent"></div><div class="notif-inner"><div class="notif-title">${esc(d.title || 'BİLDİRİM')}</div><div class="notif-body">${esc(d.message || '')}</div></div><div class="notif-progress"><div class="notif-progress-bar" style="width:100%"></div></div>`;
   box.appendChild(el);
-  setTimeout(() => { el.classList.add('exit'); setTimeout(() => el.remove(), 300); }, d.duration || 5000);
+  // Animate progress bar
+  const bar = el.querySelector('.notif-progress-bar');
+  requestAnimationFrame(() => {
+    bar.style.transitionDuration = duration + 'ms';
+    bar.style.width = '0%';
+  });
+  setTimeout(() => { el.classList.add('exit'); setTimeout(() => el.remove(), 300); }, duration);
   while (box.children.length > 5) box.removeChild(box.firstChild);
 }
 
@@ -1054,42 +1322,67 @@ function buildToolRack(serverTools) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// NEURAL BRAIN — Advanced Canvas2D Animation
+// NEURAL BRAIN — Ambient Neural Field (Full Viewport)
 // ═══════════════════════════════════════════════════════════════
 const canvas = $('brainCanvas');
 const ctx = canvas.getContext('2d');
 let W, H, cx, cy, frame = 0;
 let neurons = [], particles = [], sparks = [], pulseRings = [], waves = [];
 
-const CORE_R_RATIO = 0.09;
-const INNER_R_RATIO = 0.22;
-const OUTER_R_RATIO = 0.36;
-const N_INNER = 8;
-const N_OUTER = 10;
-const MAX_PARTICLES = 80;
+// 3 rings: 6 core, 12 middle, 18 outer
+const N_CORE = 6;
+const N_MIDDLE = 12;
+const N_OUTER = 18;
+const MAX_PARTICLES = 120;
+
+// Hex grid cache
+let hexGrid = [];
 
 function resizeBrain() {
-  const rect = canvas.parentElement.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  W = rect.width; H = rect.height;
-  cx = W / 2; cy = H / 2;
+  cx = W / 2;
+  cy = H / 2;
   initNeurons();
+  buildHexGrid();
+}
+
+function buildHexGrid() {
+  hexGrid = [];
+  const size = 40;
+  const hSpacing = size * 1.732;
+  const vSpacing = size * 1.5;
+  for (let row = -2; row < H / vSpacing + 2; row++) {
+    for (let col = -2; col < W / hSpacing + 2; col++) {
+      const x = col * hSpacing + (row % 2 ? hSpacing / 2 : 0);
+      const y = row * vSpacing;
+      hexGrid.push({ x, y, phase: Math.random() * Math.PI * 2 });
+    }
+  }
 }
 
 function initNeurons() {
   neurons = [];
-  const r1 = Math.min(W, H) * INNER_R_RATIO;
-  const r2 = Math.min(W, H) * OUTER_R_RATIO;
-  for (let i = 0; i < N_INNER; i++) {
-    const a = (Math.PI * 2 / N_INNER) * i;
-    neurons.push({ring:'inner', angle:a, baseR:r1, r:4, phase: Math.random() * Math.PI * 2});
+  const minDim = Math.min(W, H);
+  const r1 = minDim * 0.08;   // core ring
+  const r2 = minDim * 0.18;   // middle ring
+  const r3 = minDim * 0.30;   // outer ring
+
+  for (let i = 0; i < N_CORE; i++) {
+    const a = (Math.PI * 2 / N_CORE) * i;
+    neurons.push({ ring: 'core', angle: a, baseR: r1, r: 5, phase: Math.random() * Math.PI * 2 });
+  }
+  for (let i = 0; i < N_MIDDLE; i++) {
+    const a = (Math.PI * 2 / N_MIDDLE) * i + 0.26;
+    neurons.push({ ring: 'middle', angle: a, baseR: r2, r: 3.5, phase: Math.random() * Math.PI * 2 });
   }
   for (let i = 0; i < N_OUTER; i++) {
-    const a = (Math.PI * 2 / N_OUTER) * i + 0.31;
-    neurons.push({ring:'outer', angle:a, baseR:r2, r:2.8, phase: Math.random() * Math.PI * 2});
+    const a = (Math.PI * 2 / N_OUTER) * i + 0.14;
+    neurons.push({ ring: 'outer', angle: a, baseR: r3, r: 2.5, phase: Math.random() * Math.PI * 2 });
   }
 }
 
@@ -1097,150 +1390,257 @@ function setBrainState(s) {
   brainState = s;
   const lbl = $('brainLabel');
   lbl.className = 'brain-label ' + s;
-  const labels = {idle:'HAZIR', listening:'DİNLİYOR', thinking:'DÜŞÜNÜYOR', speaking:'KONUŞUYOR'};
+  const labels = { idle: 'HAZIR', listening: 'DİNLİYOR', thinking: 'DÜŞÜNÜYOR', speaking: 'KONUŞUYOR' };
   lbl.textContent = labels[s] || s.toUpperCase();
 }
 
 function drawBrain() {
   ctx.clearRect(0, 0, W, H);
   frame++;
-  const t = frame * 0.018;
+  const t = frame * 0.016;
 
-  // State params
+  // State parameters
   let cr, cg, cb, intensity, spinSpeed, pRate, sparkRate;
   if (brainState === 'thinking') {
-    cr=212; cg=160; cb=23; intensity=0.95+Math.sin(t*3)*0.05; spinSpeed=0.009; pRate=0.35; sparkRate=0.18;
+    cr = 212; cg = 160; cb = 23;
+    intensity = 0.9 + Math.sin(t * 3) * 0.1;
+    spinSpeed = 0.012; pRate = 0.4; sparkRate = 0.22;
   } else if (brainState === 'speaking') {
-    cr=0; cg=212; cb=255; intensity=0.7+audioLevel*0.3; spinSpeed=0.004; pRate=0.15+audioLevel*0.15; sparkRate=0;
+    cr = 0; cg = 212; cb = 255;
+    intensity = 0.65 + audioLevel * 0.35;
+    spinSpeed = 0.005; pRate = 0.15 + audioLevel * 0.2; sparkRate = 0;
   } else if (brainState === 'listening') {
-    cr=34; cg=211; cb=238; intensity=0.55+Math.sin(t*2)*0.12; spinSpeed=0.003; pRate=0.06; sparkRate=0;
+    cr = 34; cg = 211; cb = 238;
+    intensity = 0.5 + Math.sin(t * 1.8) * 0.15;
+    spinSpeed = 0.003; pRate = 0.07; sparkRate = 0;
   } else {
-    cr=74; cg=144; cb=217; intensity=0.35+Math.sin(t)*0.05+Math.sin(t*0.6)*0.03; spinSpeed=0.0012; pRate=0.025; sparkRate=0;
+    cr = 74; cg = 144; cb = 217;
+    intensity = 0.3 + Math.sin(t * 0.7) * 0.06;
+    spinSpeed = 0.0015; pRate = 0.03; sparkRate = 0;
   }
 
-  const gc = (a) => `rgba(${cr},${cg},${cb},${Math.max(0,Math.min(1,a)).toFixed(3)})`;
+  const gc = (a) => `rgba(${cr},${cg},${cb},${Math.max(0, Math.min(1, a)).toFixed(3)})`;
 
-  // Rotate neurons
+  // Rotate all neurons
   neurons.forEach(n => {
-    const dir = n.ring === 'inner' ? 1 : -0.65;
+    const dir = n.ring === 'core' ? 1 : n.ring === 'middle' ? -0.6 : 0.35;
     n.angle += spinSpeed * dir;
     n.x = cx + Math.cos(n.angle) * n.baseR;
     n.y = cy + Math.sin(n.angle) * n.baseR;
   });
 
-  const inner = neurons.filter(n => n.ring === 'inner');
+  const core = neurons.filter(n => n.ring === 'core');
+  const middle = neurons.filter(n => n.ring === 'middle');
   const outer = neurons.filter(n => n.ring === 'outer');
 
-  // ── Background grid ──
-  ctx.fillStyle = gc(0.025 * intensity);
-  for (let gx = 0; gx < W; gx += 32) {
-    for (let gy = 0; gy < H; gy += 32) {
-      const ox = Math.sin(t * 0.4 + gx * 0.008) * 2.5;
-      const oy = Math.cos(t * 0.35 + gy * 0.01) * 2.5;
-      ctx.beginPath(); ctx.arc(gx + ox, gy + oy, 0.7, 0, Math.PI * 2); ctx.fill();
-    }
+  // ── Hexagonal background grid with subtle movement ──
+  const hexAlpha = 0.018 * intensity;
+  if (hexAlpha > 0.002) {
+    ctx.strokeStyle = gc(hexAlpha);
+    ctx.lineWidth = 0.5;
+    const hexSize = 20;
+    hexGrid.forEach(h => {
+      const ox = Math.sin(t * 0.3 + h.phase) * 1.5;
+      const oy = Math.cos(t * 0.25 + h.phase) * 1.5;
+      const px = h.x + ox;
+      const py = h.y + oy;
+      ctx.beginPath();
+      for (let v = 0; v < 6; v++) {
+        const angle = (Math.PI / 3) * v - Math.PI / 6;
+        const vx = px + hexSize * Math.cos(angle);
+        const vy = py + hexSize * Math.sin(angle);
+        if (v === 0) ctx.moveTo(vx, vy);
+        else ctx.lineTo(vx, vy);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    });
   }
 
-  // ── Speaking: concentric wave rings ──
-  if (brainState === 'speaking' && audioLevel > 0.12 && frame % 10 === 0 && waves.length < 6) {
-    waves.push({r: Math.min(W,H) * CORE_R_RATIO, maxR: Math.min(W,H) * 0.42, life: 45});
+  // ── Speaking: wave propagation — cyan/green rings expanding outward with audioLevel ──
+  if (brainState === 'speaking' && audioLevel > 0.08 && frame % 8 === 0 && waves.length < 8) {
+    waves.push({ r: 10, maxR: Math.min(W, H) * 0.5, life: 60, color: 'cyan' });
+  }
+  // Listening: cyan pulses synced to audioLevel, ripple rings from center
+  if (brainState === 'listening' && audioLevel > 0.05 && frame % 20 === 0 && waves.length < 4) {
+    waves.push({ r: 5, maxR: Math.min(W, H) * 0.25, life: 40, color: 'listen' });
   }
   waves = waves.filter(w => {
-    w.r += 2 + audioLevel * 2.5;
+    const speed = w.color === 'listen' ? 1.5 : (2.5 + audioLevel * 3);
+    w.r += speed;
     w.life--;
     if (w.life <= 0 || w.r >= w.maxR) return false;
-    const a = (w.life / 45) * 0.3 * intensity;
-    ctx.strokeStyle = gc(a);
-    ctx.lineWidth = 2 - (w.r / w.maxR) * 1.2;
-    ctx.beginPath(); ctx.arc(cx, cy, w.r, 0, Math.PI * 2); ctx.stroke();
+    const frac = w.life / (w.color === 'listen' ? 40 : 60);
+    const a = frac * 0.25 * intensity;
+    if (w.color === 'listen') {
+      ctx.strokeStyle = `rgba(34,211,238,${a.toFixed(3)})`;
+    } else {
+      const g = Math.min(255, 212 + (1 - frac) * 43);
+      ctx.strokeStyle = `rgba(0,${Math.round(g)},255,${a.toFixed(3)})`;
+    }
+    ctx.lineWidth = 2.5 * frac;
+    ctx.beginPath();
+    ctx.arc(cx, cy, w.r, 0, Math.PI * 2);
+    ctx.stroke();
     return true;
   });
 
-  // ── Synaptic connections: center → inner (bezier in thinking) ──
-  inner.forEach((n, i) => {
+  // ── Bezier curve connections: center → core ──
+  core.forEach((n, i) => {
     if (brainState === 'thinking') {
-      const pulse = Math.sin(t * 4 + i * 0.9) * 0.5 + 0.5;
-      const a = (0.12 + 0.5 * pulse) * intensity;
-      const w = pulse > 0.55 ? 2.2 : 0.8;
-      const cpOff = Math.sin(t * 3 + i * 1.2) * 18;
+      const pulse = Math.sin(t * 4.5 + i * 1.05) * 0.5 + 0.5;
+      const a = (0.1 + 0.55 * pulse) * intensity;
+      const w = 0.8 + pulse * 1.8;
+      const cpOff = Math.sin(t * 3.5 + i * 1.4) * 22;
       const mx = (cx + n.x) / 2 + cpOff;
       const my = (cy + n.y) / 2 - cpOff;
       ctx.strokeStyle = gc(a);
       ctx.lineWidth = w;
-      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.quadraticCurveTo(mx, my, n.x, n.y); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.quadraticCurveTo(mx, my, n.x, n.y);
+      ctx.stroke();
     } else if (brainState === 'speaking') {
-      const wave = Math.sin(t * 2 + i * 0.7) * 0.5 + 0.5;
-      const a = (0.08 + 0.2 * wave + audioLevel * 0.15) * intensity;
+      const wave = Math.sin(t * 2.5 + i * 0.8) * 0.5 + 0.5;
+      const a = (0.06 + 0.2 * wave + audioLevel * 0.18) * intensity;
       ctx.strokeStyle = gc(a);
-      ctx.lineWidth = 0.8 + audioLevel * 1.2;
-      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(n.x, n.y); ctx.stroke();
+      ctx.lineWidth = 0.8 + audioLevel * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(n.x, n.y);
+      ctx.stroke();
     } else {
-      const breathe = Math.sin(t * 0.8 + i * 0.4) * 0.5 + 0.5;
-      ctx.strokeStyle = gc((0.04 + 0.04 * breathe) * intensity);
+      const breathe = Math.sin(t * 0.6 + i * 0.5) * 0.5 + 0.5;
+      ctx.strokeStyle = gc((0.03 + 0.04 * breathe) * intensity);
       ctx.lineWidth = 0.6;
-      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(n.x, n.y); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(n.x, n.y);
+      ctx.stroke();
     }
   });
 
-  // ── Inner → outer connections ──
-  outer.forEach((n, i) => {
-    const src = inner[i % N_INNER];
-    let a = 0.04 * intensity;
-    if (brainState === 'thinking') a = (0.04 + 0.18 * Math.max(0, Math.sin(t * 2.5 + i))) * intensity;
-    ctx.strokeStyle = gc(a);
-    ctx.lineWidth = 0.6;
-    ctx.beginPath(); ctx.moveTo(src.x, src.y); ctx.lineTo(n.x, n.y); ctx.stroke();
+  // ── Core → middle bezier connections with energy particles flowing ──
+  middle.forEach((n, i) => {
+    const src = core[i % N_CORE];
+    if (brainState === 'thinking') {
+      const pulse = Math.sin(t * 3 + i * 0.7) * 0.5 + 0.5;
+      const a = (0.05 + 0.3 * pulse) * intensity;
+      const cpx = (src.x + n.x) / 2 + Math.sin(t * 2 + i) * 15;
+      const cpy = (src.y + n.y) / 2 + Math.cos(t * 2.2 + i) * 15;
+      ctx.strokeStyle = gc(a);
+      ctx.lineWidth = 0.6 + pulse * 0.8;
+      ctx.beginPath();
+      ctx.moveTo(src.x, src.y);
+      ctx.quadraticCurveTo(cpx, cpy, n.x, n.y);
+      ctx.stroke();
+    } else {
+      const a = (0.025 + 0.015 * Math.sin(t * 0.5 + i)) * intensity;
+      ctx.strokeStyle = gc(a);
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(src.x, src.y);
+      ctx.lineTo(n.x, n.y);
+      ctx.stroke();
+    }
   });
 
-  // ── Inner mesh ──
-  for (let i = 0; i < N_INNER; i++) {
-    const j = (i + 1) % N_INNER;
-    ctx.strokeStyle = gc(0.05 * intensity);
-    ctx.lineWidth = 0.5;
-    ctx.beginPath(); ctx.moveTo(inner[i].x, inner[i].y); ctx.lineTo(inner[j].x, inner[j].y); ctx.stroke();
+  // ── Middle → outer connections ──
+  outer.forEach((n, i) => {
+    const src = middle[i % N_MIDDLE];
+    let a = 0.025 * intensity;
+    if (brainState === 'thinking') a = (0.03 + 0.15 * Math.max(0, Math.sin(t * 2.8 + i))) * intensity;
+    ctx.strokeStyle = gc(a);
+    ctx.lineWidth = 0.4;
+    ctx.beginPath();
+    ctx.moveTo(src.x, src.y);
+    ctx.lineTo(n.x, n.y);
+    ctx.stroke();
+  });
+
+  // ── Core ring mesh ──
+  for (let i = 0; i < N_CORE; i++) {
+    const j = (i + 1) % N_CORE;
+    ctx.strokeStyle = gc(0.04 * intensity);
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(core[i].x, core[i].y);
+    ctx.lineTo(core[j].x, core[j].y);
+    ctx.stroke();
   }
 
-  // ── Electromagnetic sparks (thinking) ──
-  if (brainState === 'thinking' && frame % 3 === 0 && sparks.length < 6) {
-    const si = Math.floor(Math.random() * N_INNER);
-    const oi = Math.floor(Math.random() * N_OUTER);
-    sparks.push({
-      x1: inner[si].x, y1: inner[si].y,
-      x2: outer[oi].x, y2: outer[oi].y,
-      life: 15, maxLife: 15,
-    });
+  // ── Middle ring mesh ──
+  for (let i = 0; i < N_MIDDLE; i++) {
+    const j = (i + 1) % N_MIDDLE;
+    ctx.strokeStyle = gc(0.02 * intensity);
+    ctx.lineWidth = 0.4;
+    ctx.beginPath();
+    ctx.moveTo(middle[i].x, middle[i].y);
+    ctx.lineTo(middle[j].x, middle[j].y);
+    ctx.stroke();
+  }
+
+  // ── Thinking: zigzag electric storm sparks ──
+  if (brainState === 'thinking' && frame % 2 === 0 && sparks.length < 10) {
+    const si = Math.floor(Math.random() * N_CORE);
+    const ti = Math.floor(Math.random() * N_OUTER);
+    const sx = core[si].x, sy = core[si].y;
+    const ex = outer[ti].x, ey = outer[ti].y;
+    const segs = 4 + Math.floor(Math.random() * 3);
+    const points = [];
+    for (let s = 0; s <= segs; s++) {
+      const frac = s / segs;
+      const px = sx + (ex - sx) * frac + (s > 0 && s < segs ? (Math.random() - 0.5) * 30 : 0);
+      const py = sy + (ey - sy) * frac + (s > 0 && s < segs ? (Math.random() - 0.5) * 30 : 0);
+      points.push({ x: px, y: py });
+    }
+    sparks.push({ points, life: 12, maxLife: 12 });
   }
   sparks = sparks.filter(s => {
     s.life--;
     if (s.life <= 0) return false;
     const frac = s.life / s.maxLife;
-    const a = 0.85 * frac;
+    const a = 0.8 * frac;
     ctx.strokeStyle = `rgba(255,220,80,${a.toFixed(3)})`;
-    ctx.lineWidth = 1.2 + frac;
-    ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
-    // Endpoint glow
-    ctx.beginPath(); ctx.arc(s.x2, s.y2, 3 * frac, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,240,120,${(a * 0.6).toFixed(3)})`; ctx.fill();
+    ctx.lineWidth = 1 + frac * 1.5;
+    ctx.beginPath();
+    ctx.moveTo(s.points[0].x, s.points[0].y);
+    for (let i = 1; i < s.points.length; i++) {
+      ctx.lineTo(s.points[i].x, s.points[i].y);
+    }
+    ctx.stroke();
+    const last = s.points[s.points.length - 1];
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, 4 * frac, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,240,120,${(a * 0.5).toFixed(3)})`;
+    ctx.fill();
     return true;
   });
 
-  // ── Spawn particles ──
+  // ── Spawn particles (energy flowing along connections) ──
   if (Math.random() < pRate && particles.length < MAX_PARTICLES) {
     if (brainState === 'thinking') {
-      const n = inner[Math.floor(Math.random() * N_INNER)];
-      const angle = n.angle + (Math.random() - 0.5) * 0.8;
-      const speed = 1.5 + Math.random() * 2.5;
-      particles.push({x:n.x, y:n.y, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed, life:30+Math.random()*20, maxLife:50, r:1.5+Math.random(), type:'streak'});
+      // Fast particle bursts from core neurons
+      const n = core[Math.floor(Math.random() * N_CORE)];
+      const angle = n.angle + (Math.random() - 0.5) * 1.2;
+      const speed = 2 + Math.random() * 3;
+      particles.push({ x: n.x, y: n.y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 25 + Math.random() * 20, maxLife: 45, r: 1.5 + Math.random(), type: 'burst' });
     } else if (brainState === 'speaking') {
       const angle = Math.random() * Math.PI * 2;
-      const speed = audioLevel * 2.5 + 0.5;
-      particles.push({x:cx, y:cy, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed, life:45+Math.random()*20, maxLife:65, r:1+audioLevel*2, type:'wave'});
+      const speed = audioLevel * 3 + 0.8;
+      particles.push({ x: cx, y: cy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 50 + Math.random() * 25, maxLife: 75, r: 1 + audioLevel * 2.5, type: 'wave' });
+    } else if (brainState === 'listening') {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 15 + Math.random() * neurons[0].baseR * 2;
+      const dir = angle + Math.PI * 0.5 + (Math.random() - 0.5) * 0.4;
+      const speed = 0.15 + Math.random() * 0.25;
+      particles.push({ x: cx + dist * Math.cos(angle), y: cy + dist * Math.sin(angle), vx: Math.cos(dir) * speed, vy: Math.sin(dir) * speed, life: 180 + Math.random() * 80, maxLife: 260, r: 1.2, type: 'drift' });
     } else {
       const angle = Math.random() * Math.PI * 2;
-      const dist = 20 + Math.random() * Math.min(W,H) * INNER_R_RATIO;
+      const dist = 20 + Math.random() * Math.min(W, H) * 0.15;
       const dir = angle + Math.PI * 0.5 + (Math.random() - 0.5) * 0.5;
-      const speed = 0.1 + Math.random() * 0.2;
-      particles.push({x:cx+dist*Math.cos(angle), y:cy+dist*Math.sin(angle), vx:Math.cos(dir)*speed, vy:Math.sin(dir)*speed, life:200+Math.random()*100, maxLife:300, r:1.3, type:'drift'});
+      const speed = 0.08 + Math.random() * 0.15;
+      particles.push({ x: cx + dist * Math.cos(angle), y: cy + dist * Math.sin(angle), vx: Math.cos(dir) * speed, vy: Math.sin(dir) * speed, life: 250 + Math.random() * 120, maxLife: 370, r: 1.1, type: 'drift' });
     }
   }
 
@@ -1251,22 +1651,22 @@ function drawBrain() {
     if (p.life <= 0) return false;
     const frac = p.life / p.maxLife;
     const a = 0.7 * frac * intensity;
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * frac, 0, Math.PI * 2);
-    if (p.type === 'streak') ctx.fillStyle = `rgba(255,200,60,${a.toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.5 + frac * 0.5), 0, Math.PI * 2);
+    if (p.type === 'burst') ctx.fillStyle = `rgba(255,200,60,${a.toFixed(3)})`;
     else if (p.type === 'wave') ctx.fillStyle = gc(a);
-    else ctx.fillStyle = gc(a * 0.5);
+    else ctx.fillStyle = gc(a * 0.4);
     ctx.fill();
     return true;
   });
 
   // ── Pulse rings ──
-  const maxPulse = Math.min(W, H) * INNER_R_RATIO * 1.3;
-  if (Math.random() < (brainState === 'thinking' ? 0.1 : brainState === 'speaking' ? 0.05 : 0.015) && pulseRings.length < 5) {
+  const maxPulse = Math.min(W, H) * 0.22;
+  if (Math.random() < (brainState === 'thinking' ? 0.12 : brainState === 'speaking' ? 0.06 : 0.012) && pulseRings.length < 6) {
     pulseRings.push(5);
   }
-  pulseRings = pulseRings.map(r => r + (brainState === 'thinking' ? 2 : brainState === 'speaking' ? 1.2 : 0.5)).filter(r => {
+  pulseRings = pulseRings.map(r => r + (brainState === 'thinking' ? 2.5 : brainState === 'speaking' ? 1.5 : 0.4)).filter(r => {
     if (r >= maxPulse) return false;
-    const a = 0.5 * (1 - r / maxPulse) * intensity;
+    const a = 0.4 * (1 - r / maxPulse) * intensity;
     ctx.strokeStyle = gc(a);
     ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
@@ -1276,29 +1676,46 @@ function drawBrain() {
   // ── Outer neurons ──
   outer.forEach((n, i) => {
     const fire = brainState === 'thinking' ? Math.max(0, Math.sin(t * 3 + i * 1.5)) : 0;
-    const a = (0.3 + 0.7 * fire) * intensity;
+    const a = (0.25 + 0.75 * fire) * intensity;
     ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
     ctx.fillStyle = gc(a); ctx.fill();
     if (fire > 0.3) {
       ctx.beginPath(); ctx.arc(n.x, n.y, n.r * 3, 0, Math.PI * 2);
-      ctx.fillStyle = gc(0.08 * fire); ctx.fill();
+      ctx.fillStyle = gc(0.06 * fire); ctx.fill();
     }
   });
 
-  // ── Inner neurons ──
-  inner.forEach((n, i) => {
+  // ── Middle neurons ──
+  middle.forEach((n, i) => {
     let fire;
-    if (brainState === 'thinking') fire = Math.max(0, Math.sin(t * 4 + i * 1.1));
-    else if (brainState === 'speaking') fire = Math.max(0, Math.sin(t * 2 + i * 0.8)) * 0.5 + audioLevel * 0.3;
+    if (brainState === 'thinking') fire = Math.max(0, Math.sin(t * 3.5 + i * 0.9));
+    else if (brainState === 'speaking') fire = Math.max(0, Math.sin(t * 2 + i * 0.7)) * 0.4 + audioLevel * 0.25;
+    else fire = Math.max(0, Math.sin(t * 0.7 + i * 0.5)) * 0.12;
+
+    if (fire > 0.15) {
+      ctx.beginPath(); ctx.arc(n.x, n.y, n.r * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = gc(0.05 * fire * intensity); ctx.fill();
+    }
+    const a = (0.3 + 0.7 * fire) * intensity;
+    ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    ctx.fillStyle = gc(a); ctx.fill();
+  });
+
+  // ── Core neurons ──
+  core.forEach((n, i) => {
+    let fire;
+    if (brainState === 'thinking') fire = Math.max(0, Math.sin(t * 4.5 + i * 1.1));
+    else if (brainState === 'speaking') fire = Math.max(0, Math.sin(t * 2.2 + i * 0.8)) * 0.5 + audioLevel * 0.35;
+    else if (brainState === 'listening') fire = Math.max(0, Math.sin(t * 1.5 + i * 0.7)) * 0.2 + audioLevel * 0.3;
     else fire = Math.max(0, Math.sin(t * 0.8 + i * 0.6)) * 0.15;
 
-    const baseR = brainState === 'thinking' ? 6 : 4.5;
+    const baseR = brainState === 'thinking' ? 7 : 5;
 
     // Glow
     if (fire > 0.2) {
-      const glowR = baseR * (2 + fire * 3);
+      const glowR = baseR * (2.5 + fire * 3.5);
       ctx.beginPath(); ctx.arc(n.x, n.y, glowR, 0, Math.PI * 2);
-      ctx.fillStyle = gc(0.06 * fire * intensity); ctx.fill();
+      ctx.fillStyle = gc(0.05 * fire * intensity); ctx.fill();
     }
 
     const a = (0.4 + 0.6 * fire) * intensity;
@@ -1306,68 +1723,76 @@ function drawBrain() {
     ctx.fillStyle = gc(a); ctx.fill();
   });
 
-  // ── Central orb ──
-  const orbR = Math.min(W, H) * CORE_R_RATIO;
-  const scale = 1 + (brainState === 'speaking' ? audioLevel * 0.12 : brainState === 'thinking' ? Math.sin(t * 2) * 0.04 : Math.sin(t) * 0.025);
+  // ── Central orb with pulsing glow ──
+  const orbR = Math.min(W, H) * 0.04;
+  const breathe = brainState === 'speaking' ? audioLevel * 0.15 : brainState === 'thinking' ? Math.sin(t * 2.5) * 0.06 : Math.sin(t * 0.8) * 0.03;
+  const scale = 1 + breathe;
 
-  // Outer glow
-  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, orbR * scale * 2.2);
-  grad.addColorStop(0, gc(0.15 * intensity));
-  grad.addColorStop(1, gc(0));
-  ctx.fillStyle = grad;
-  ctx.beginPath(); ctx.arc(cx, cy, orbR * scale * 2.2, 0, Math.PI * 2); ctx.fill();
+  // Wide glow
+  const grad0 = ctx.createRadialGradient(cx, cy, 0, cx, cy, orbR * scale * 4);
+  grad0.addColorStop(0, gc(0.08 * intensity));
+  grad0.addColorStop(1, gc(0));
+  ctx.fillStyle = grad0;
+  ctx.beginPath(); ctx.arc(cx, cy, orbR * scale * 4, 0, Math.PI * 2); ctx.fill();
 
-  // Core
-  const grad2 = ctx.createRadialGradient(cx - orbR * 0.25, cy - orbR * 0.25, 0, cx, cy, orbR * scale);
+  // Medium glow
+  const grad1 = ctx.createRadialGradient(cx, cy, 0, cx, cy, orbR * scale * 2.5);
+  grad1.addColorStop(0, gc(0.15 * intensity));
+  grad1.addColorStop(1, gc(0));
+  ctx.fillStyle = grad1;
+  ctx.beginPath(); ctx.arc(cx, cy, orbR * scale * 2.5, 0, Math.PI * 2); ctx.fill();
+
+  // Core sphere
+  const grad2 = ctx.createRadialGradient(cx - orbR * 0.3, cy - orbR * 0.3, 0, cx, cy, orbR * scale);
   grad2.addColorStop(0, '#1a2d45');
-  grad2.addColorStop(1, '#0a1320');
+  grad2.addColorStop(1, '#080e1a');
   ctx.fillStyle = grad2;
   ctx.beginPath(); ctx.arc(cx, cy, orbR * scale, 0, Math.PI * 2); ctx.fill();
 
   // Orb ring
-  ctx.strokeStyle = gc(0.25 * intensity);
-  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = gc(0.3 * intensity);
+  ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.arc(cx, cy, orbR * scale + 3, 0, Math.PI * 2); ctx.stroke();
 
   // Second ring
-  ctx.strokeStyle = gc(0.08 * intensity);
+  ctx.strokeStyle = gc(0.1 * intensity);
   ctx.lineWidth = 0.8;
   ctx.beginPath(); ctx.arc(cx, cy, orbR * scale + 8, 0, Math.PI * 2); ctx.stroke();
 
-  // "MAZLUM" text
-  ctx.fillStyle = gc(0.6 * intensity);
-  ctx.font = `600 ${Math.max(8, orbR * 0.32)}px 'Inter'`;
+  // "M" text in orb
+  ctx.fillStyle = gc(0.65 * intensity);
+  ctx.font = `700 ${Math.max(10, orbR * 0.6)}px 'Inter'`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('MAZLUM', cx, cy);
+  ctx.fillText('M', cx, cy);
 
-  // ── Thinking: progress arc + orbiting comets ──
+  // ── Thinking: progress arc + orbiting comets with trails ──
   if (brainState === 'thinking') {
     const progress = (Math.sin(t * 0.8) * 0.5 + 0.5);
     const progR = orbR * scale + 14;
-    ctx.strokeStyle = 'rgba(0,200,104,0.4)';
+    ctx.strokeStyle = 'rgba(0,200,104,0.35)';
     ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(cx, cy, progR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke();
 
-    // Orbiting comets with trails
-    const cometR = Math.min(W, H) * INNER_R_RATIO + 16;
+    // 3 orbiting comets
+    const cometR = Math.min(W, H) * 0.14;
     for (let i = 0; i < 3; i++) {
-      const angle = (frame * 0.06 + i * (Math.PI * 2 / 3));
+      const angle = (frame * 0.055 + i * (Math.PI * 2 / 3));
       const px = cx + cometR * Math.cos(angle);
       const py = cy + cometR * Math.sin(angle);
 
       // Comet head
-      ctx.beginPath(); ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+      ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2);
       ctx.fillStyle = '#d4a017'; ctx.fill();
-      ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(212,160,23,0.15)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(212,160,23,0.12)'; ctx.fill();
 
       // Trail
-      for (let j = 1; j < 8; j++) {
-        const ta = angle - j * 0.08;
+      for (let j = 1; j < 10; j++) {
+        const ta = angle - j * 0.07;
         const tx = cx + cometR * Math.cos(ta);
         const ty = cy + cometR * Math.sin(ta);
-        const trailA = Math.max(0, 0.5 - j * 0.07);
-        ctx.beginPath(); ctx.arc(tx, ty, 2 - j * 0.2, 0, Math.PI * 2);
+        const trailA = Math.max(0, 0.45 - j * 0.05);
+        ctx.beginPath(); ctx.arc(tx, ty, 2.5 - j * 0.2, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(212,160,23,${trailA.toFixed(3)})`; ctx.fill();
       }
     }
@@ -1446,6 +1871,14 @@ function sendMessage() {
 // INIT
 // ═══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  // Drawer toggles
+  $('toggleLeft').addEventListener('click', toggleDrawerLeft);
+  $('toggleRight').addEventListener('click', toggleDrawerRight);
+  $('drawerOverlay').addEventListener('click', closeAllDrawers);
+
+  // Mute button (must be inside DOMContentLoaded)
+  $('btnMute').onclick = toggleMicMute;
+
   // Input handlers
   $('msgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
   $('btnSend').addEventListener('click', sendMessage);
@@ -1477,6 +1910,8 @@ document.addEventListener('DOMContentLoaded', () => {
       toggleMicMute();
     }
     if (e.key === 'Escape') {
+      // Close drawers on Escape
+      closeAllDrawers();
       if (isThinking) {
         send('cancel');
         showDur(false);
