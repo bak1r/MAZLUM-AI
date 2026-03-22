@@ -25,7 +25,7 @@ CHANNELS = 1
 SEND_SAMPLE_RATE = 16000
 RECEIVE_SAMPLE_RATE = 24000
 CHUNK_SIZE = 1024
-VAD_THRESHOLD_SPEAKING = 1500  # RMS threshold — barge-in eşiği (hoparlör bleed ~300-1000, insan sesi ~1500-3000)
+BARGE_IN_RMS = 4000  # Kullanıcı sesi eşiği — hoparlör echo'su (~300-1000) geçilir, insan sesi (~2000+) algılanır
 LIVE_MODEL = "models/gemini-2.5-flash-native-audio-preview-12-2025"
 
 
@@ -871,8 +871,8 @@ class VoiceEngine:
                 elif self._is_speaking or now_mono < _post_speak_mute_end:
                     # Bot konuşurken echo'yu engelle AMA barge-in için yüksek sesi geçir
                     # Kullanıcı "dur" dediğinde Gemini algılayabilsin
-                    if rms > 4000:
-                        # Yüksek ses = kullanıcı konuşuyor → barge-in sinyali (4000 = hoparlör echo'sunu geç)
+                    if rms > BARGE_IN_RMS:
+                        # Yüksek ses = kullanıcı konuşuyor → barge-in sinyali
                         await self._out_queue.put({"data": data, "mime_type": "audio/pcm"})
                     else:
                         await self._out_queue.put({"data": SILENCE, "mime_type": "audio/pcm"})
