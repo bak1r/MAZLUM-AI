@@ -823,16 +823,35 @@ function checkHideDur() {
 // ─── Mic Mute ───────────────────────────────────────────────────
 let micMuted = false;
 function toggleMicMute() {
+  // Anında görsel geri bildirim — WebSocket cevabını bekleme
+  micMuted = !micMuted;
+  updateMuteUI();
   if (ws && ws.readyState === 1) {
     ws.send(JSON.stringify({action: 'mic_mute'}));
   }
 }
-function onMicMute(d) {
-  micMuted = d.muted;
+function updateMuteUI() {
   const btn = $('btnMute');
   btn.classList.toggle('muted', micMuted);
   btn.innerHTML = micMuted ? '🔇' : '🎙️';
   btn.title = micMuted ? 'Mikrofon Kapalı — Aç (K)' : 'Mikrofonu Sessize Al (K)';
+  // Basma animasyonu
+  btn.style.transform = 'scale(0.85)';
+  setTimeout(() => { btn.style.transform = ''; }, 150);
+  // Bildirim
+  showNotif({
+    title: micMuted ? '🔇 MİKROFON KAPALI' : '🎙️ MİKROFON AÇIK',
+    message: micMuted ? 'MAZLUM seni duymuyor' : 'MAZLUM seni duyuyor',
+    priority: micMuted ? 'urgent' : 'normal',
+    duration: 2000
+  });
+}
+function onMicMute(d) {
+  // Sunucu onayı — state'i senkronize et
+  if (d.muted !== micMuted) {
+    micMuted = d.muted;
+    updateMuteUI();
+  }
 }
 $('btnMute').onclick = toggleMicMute;
 
