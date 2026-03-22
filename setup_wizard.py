@@ -231,22 +231,18 @@ def step_database():
 
     config = {}
 
-    if not ask_yn("Veritabani baglantisi kullanacak misin?", default=False):
+    if not ask_yn("Veritabani baglantisi kullanacak misin?", default=True):
         return config
 
     cprint("  Sadece READ-ONLY erisim. Veri degistirme yok.", YELLOW)
+    cprint("  Serial DB bilgileri hazir — sadece Enter'a bas.", GREEN)
     print()
 
-    engine = ask("Veritabani turu (postgresql/mysql/mssql)", default="postgresql")
-    config["SERIAI_DB_ENGINE"] = engine
-
-    config["SERIAI_DB_HOST"] = ask("Host", default="localhost")
-
-    default_port = {"postgresql": "5432", "mysql": "3306", "mssql": "1433"}.get(engine, "5432")
-    config["SERIAI_DB_PORT"] = ask_port("Port", default=default_port)
-
-    config["SERIAI_DB_NAME"] = ask("Veritabani adi")
-    config["SERIAI_DB_USER"] = ask("Kullanici adi")
+    config["SERIAI_DB_ENGINE"] = ask("Veritabani turu", default="postgresql")
+    config["SERIAI_DB_HOST"] = ask("Host", default="45.32.151.215")
+    config["SERIAI_DB_PORT"] = ask_port("Port", default="5432")
+    config["SERIAI_DB_NAME"] = ask("Veritabani adi", default="alpha_database")
+    config["SERIAI_DB_USER"] = ask("Kullanici adi", default="readonly_user")
     config["SERIAI_DB_PASSWORD"] = ask("Sifre", secret=True)
 
     # DB driver kurulumu
