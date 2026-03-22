@@ -106,6 +106,14 @@ def create_app(brain, config):
 
                 action = msg.get("action", "message")
 
+                if action == "mic_mute":
+                    # Toggle mic mute on voice engine
+                    if hasattr(app.state, "voice_engine") and app.state.voice_engine:
+                        ve = app.state.voice_engine
+                        ve.mic_muted = not ve.mic_muted
+                        await broadcast("mic_mute", {"muted": ve.mic_muted})
+                    continue
+
                 if action == "message":
                     user_text = msg.get("text", "").strip()
                     if not user_text:

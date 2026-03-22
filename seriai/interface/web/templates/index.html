@@ -117,6 +117,11 @@ header{height:48px;background:var(--panel);border-bottom:1px solid var(--border)
 .btn-mic{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--dim);font-size:15px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .btn-mic:hover{border-color:var(--cyan);color:var(--cyan)}
 .btn-mic.on{color:var(--cyan);border-color:var(--cyan);background:rgba(0,212,255,0.06);animation:mic-glow 2s ease infinite}
+.btn-mute{width:48px;height:48px;border-radius:50%;border:2px solid var(--green);background:rgba(0,200,104,0.08);color:var(--green);font-size:22px;cursor:pointer;transition:all 0.25s;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
+.btn-mute:hover{transform:scale(1.1);box-shadow:0 0 16px rgba(0,200,104,0.3)}
+.btn-mute.muted{border-color:var(--red);background:rgba(232,64,64,0.15);color:var(--red);animation:mute-pulse 1.5s ease infinite}
+.btn-mute.muted:hover{box-shadow:0 0 16px rgba(232,64,64,0.3)}
+@keyframes mute-pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,64,64,0.3)}50%{box-shadow:0 0 0 8px rgba(232,64,64,0)}}
 .shortcut-hint{font-size:8px;color:var(--dim);letter-spacing:0.5px;flex-shrink:0}
 
 /* ═══════════════════ RIGHT PANEL ═══════════════════ */
@@ -264,6 +269,7 @@ footer{height:36px;background:var(--panel);border-top:1px solid var(--border);di
     </div>
     <div class="chat-area" id="chatArea"></div>
     <div class="input-wrap">
+      <button class="btn-mute" id="btnMute" title="Mikrofonu Sessize Al (K)">🎙️</button>
       <button class="btn-mic" id="btnMic" title="Sesli konuş (M)">🎤</button>
       <input type="text" id="msgInput" placeholder="Mesaj yaz veya sesli konuş..." autocomplete="off">
       <button class="btn-send" id="btnSend">Gönder</button>
@@ -453,6 +459,7 @@ function handleEvent(type, data) {
     case 'insight':       showInsight(data); break;
     case 'cost':          onCost(data); break;
     case 'audio_level':   onAudioLevel(data); break;
+    case 'mic_mute':      onMicMute(data); break;
     case 'daemon_status': onDaemonStatus(data); break;
     case 'env_status':    onEnvStatus(data); break;
     case 'connection':    setConn(data.active); break;
@@ -812,6 +819,22 @@ function checkHideDur() {
   const any = document.querySelectorAll('.tool-row.running').length > 0;
   if (!any && !isThinking) showDur(false);
 }
+
+// ─── Mic Mute ───────────────────────────────────────────────────
+let micMuted = false;
+function toggleMicMute() {
+  if (ws && ws.readyState === 1) {
+    ws.send(JSON.stringify({action: 'mic_mute'}));
+  }
+}
+function onMicMute(d) {
+  micMuted = d.muted;
+  const btn = $('btnMute');
+  btn.classList.toggle('muted', micMuted);
+  btn.innerHTML = micMuted ? '🔇' : '🎙️';
+  btn.title = micMuted ? 'Mikrofon Kapalı — Aç (K)' : 'Mikrofonu Sessize Al (K)';
+}
+$('btnMute').onclick = toggleMicMute;
 
 // ─── Audio Level (drives brain animation in real-time) ──────────
 function onAudioLevel(d) {
@@ -1411,6 +1434,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'm' && !e.ctrlKey && !e.metaKey && document.activeElement !== $('msgInput')) {
       e.preventDefault();
       toggleVoice();
+    }
+    if (e.key === 'k' && !e.ctrlKey && !e.metaKey && document.activeElement !== $('msgInput')) {
+      e.preventDefault();
+      toggleMicMute();
     }
     if (e.key === 'Escape') {
       if (isThinking) {

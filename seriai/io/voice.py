@@ -52,6 +52,7 @@ class VoiceEngine:
         self._notification_queue: asyncio.Queue = None  # proaktif bildirimler
         self._notification_pending = False  # Bildirim enjekte edildi, ghost filtre devre dışı
         self._recent_notifications: list = []  # Son bildirimler — Gemini hafızası için
+        self.mic_muted = False  # Web UI mute butonu
 
     def set_broadcast(self, broadcast_fn: Callable):
         """Web UI'a event broadcast fonksiyonunu bağla."""
@@ -854,10 +855,13 @@ class VoiceEngine:
                 # Broadcast audio level to web UI (throttled)
                 if now_mono - _last_level_broadcast > _LEVEL_INTERVAL:
                     _last_level_broadcast = now_mono
-                    level = min(1.0, rms / 3000.0)  # Normalize to 0-1
+                    level = 0.0 if self.mic_muted else min(1.0, rms / 3000.0)
                     await self._broadcast("audio_level", {"level": level})
 
-                if self._is_speaking or now_mono < _post_speak_mute_end:
+                # Mic muted → sadece sessizlik gönder
+                if self.mic_muted:
+                    await self._out_queue.put({"data": SILENCE, "mime_type": "audio/pcm"})
+                elif self._is_speaking or now_mono < _post_speak_mute_end:
                     # Bot konuşurken echo'yu engelle AMA barge-in için yüksek sesi geçir
                     # Kullanıcı "dur" dediğinde Gemini algılayabilsin
                     if rms > 4000:

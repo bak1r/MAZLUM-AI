@@ -135,6 +135,9 @@ async def run_web(brain, config, log):
     import uvicorn
     from seriai.interface.web.server import create_app
     app = create_app(brain, config)
+    # Voice engine referansını app.state'e bağla (web UI mute kontrolü için)
+    if _voice_engine_instance:
+        app.state.voice_engine = _voice_engine_instance
     uv_config = uvicorn.Config(
         app, host="127.0.0.1", port=config.web_port, log_level="warning"
     )
