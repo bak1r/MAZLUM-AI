@@ -107,11 +107,18 @@ def create_app(brain, config):
                 action = msg.get("action", "message")
 
                 if action == "mic_mute":
-                    # Toggle mic mute on voice engine
-                    if hasattr(app.state, "voice_engine") and app.state.voice_engine:
-                        ve = app.state.voice_engine
-                        ve.mic_muted = not ve.mic_muted
-                        await broadcast("mic_mute", {"muted": ve.mic_muted})
+                    # Toggle mic mute on voice engine (lazy import — voice engine starts after web)
+                    try:
+                        import main as _main_mod
+                        ve = getattr(_main_mod, '_voice_engine_instance', None)
+                        if ve:
+                            ve.mic_muted = not ve.mic_muted
+                            await broadcast("mic_mute", {"muted": ve.mic_muted})
+                            log.info(f"Mic mute: {'ON' if ve.mic_muted else 'OFF'}")
+                        else:
+                            await broadcast("mic_mute", {"muted": False, "error": "Voice engine not running"})
+                    except Exception as e:
+                        log.error(f"Mic mute error: {e}")
                     continue
 
                 if action == "message":
