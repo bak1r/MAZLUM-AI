@@ -449,6 +449,13 @@ class VoiceEngine:
             elif name == "self_shutdown":
                 self._log("MAZLUM kapatılıyor...")
                 result = "MAZLUM kapatılıyor, efendim. Görüşürüz."
+                # Web UI'a kapanış bildirimi gönder
+                async def _send_shutdown():
+                    try:
+                        await self._broadcast("shutdown", {"message": "MAZLUM kapatıldı. Görüşürüz."})
+                    except Exception:
+                        pass
+                asyncio.ensure_future(_send_shutdown())
                 import signal
                 def _force_exit():
                     """SIGTERM → 2s bekle → SIGKILL. Web server dahil her şey kapanır."""
@@ -460,7 +467,7 @@ class VoiceEngine:
                     os.kill(os.getpid(), signal.SIGTERM)
                     import time; time.sleep(2)
                     os._exit(0)  # Hâlâ kapanmadıysa zorla kapat
-                threading.Timer(1.5, _force_exit).start()
+                threading.Timer(2.5, _force_exit).start()
 
             elif name == "check_telegram_mentions":
                 if not self.telegram_monitor or not self.telegram_monitor.is_connected:

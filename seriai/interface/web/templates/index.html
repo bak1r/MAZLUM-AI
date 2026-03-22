@@ -460,6 +460,7 @@ function handleEvent(type, data) {
     case 'cost':          onCost(data); break;
     case 'audio_level':   onAudioLevel(data); break;
     case 'mic_mute':      onMicMute(data); break;
+    case 'shutdown':      onShutdown(data); break;
     case 'daemon_status': onDaemonStatus(data); break;
     case 'env_status':    onEnvStatus(data); break;
     case 'connection':    setConn(data.active); break;
@@ -854,6 +855,23 @@ function onMicMute(d) {
   }
 }
 $('btnMute').onclick = toggleMicMute;
+
+// ─── Shutdown ───────────────────────────────────────────────────
+function onShutdown(d) {
+  // Reconnect'i durdur
+  reconnectMs = 999999999;
+  reconnectAttempts = 999;
+  // Overlay göster
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(20px)';
+  overlay.innerHTML = `
+    <div style="font-size:64px;margin-bottom:20px">👋</div>
+    <div style="font-size:24px;font-weight:700;color:#00d4ff;margin-bottom:10px">MAZLUM KAPATILDI</div>
+    <div style="font-size:14px;color:#94a3b8">${d.message || 'Görüşürüz.'}</div>
+    <div style="font-size:12px;color:#3d4a5c;margin-top:20px">Bu sekmeyi kapatabilirsiniz.</div>
+  `;
+  document.body.appendChild(overlay);
+}
 
 // ─── Audio Level (drives brain animation in real-time) ──────────
 function onAudioLevel(d) {
