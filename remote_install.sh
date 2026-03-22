@@ -120,7 +120,7 @@ python3 -m pip install -r requirements.txt --quiet 2>/dev/null || {
 say "Tüm bağımlılıklar kuruldu"
 
 # ── 7. Setup Wizard ──────────────────────────────────────────
-step "7/7 — Ayarlar yapılandırılıyor"
+step "7/8 — Ayarlar yapılandırılıyor"
 
 if [[ -f ".env" ]]; then
     warn ".env zaten var, setup wizard atlanıyor"
@@ -128,6 +128,42 @@ if [[ -f ".env" ]]; then
 else
     python3 setup_wizard.py
 fi
+
+# ── 8. macOS İzinleri ─────────────────────────────────────────
+step "8/8 — macOS izinleri veriliyor"
+
+echo -e "${YELLOW}${BOLD}ÖNEMLİ: Şimdi 3 tane izin penceresi açılacak.${RESET}"
+echo -e "${YELLOW}Her birinde 'Terminal' uygulamasını bulup yanındaki${RESET}"
+echo -e "${YELLOW}anahtarı AÇIK konuma getirin (yeşil olacak).${RESET}"
+echo -e "${YELLOW}Eğer Terminal listede yoksa + butonuna basıp ekleyin.${RESET}"
+echo ""
+
+# Mikrofon
+echo -e "${CYAN}1) MİKROFON izni açılıyor...${RESET}"
+open "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone" 2>/dev/null || \
+open "/System/Library/PreferencePanes/Security.prefPane" 2>/dev/null
+echo -e "${YELLOW}   → Terminal'in yanındaki anahtarı AÇ yapın${RESET}"
+read -r -p "   Açtınız mı? Enter'a basın: "
+
+# Ekran Kaydı
+echo -e "${CYAN}2) EKRAN KAYDI izni açılıyor...${RESET}"
+open "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture" 2>/dev/null
+echo -e "${YELLOW}   → Terminal'in yanındaki anahtarı AÇ yapın${RESET}"
+read -r -p "   Açtınız mı? Enter'a basın: "
+
+# Erişilebilirlik
+echo -e "${CYAN}3) ERİŞİLEBİLİRLİK izni açılıyor...${RESET}"
+open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility" 2>/dev/null
+echo -e "${YELLOW}   → Terminal'in yanındaki anahtarı AÇ yapın${RESET}"
+read -r -p "   Açtınız mı? Enter'a basın: "
+
+# Tam Disk Erişimi
+echo -e "${CYAN}4) TAM DİSK ERİŞİMİ izni açılıyor...${RESET}"
+open "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles" 2>/dev/null
+echo -e "${YELLOW}   → Terminal'in yanındaki anahtarı AÇ yapın${RESET}"
+read -r -p "   Açtınız mı? Enter'a basın: "
+
+say "Tüm izinler ayarlandı"
 
 # ── Bitti ─────────────────────────────────────────────────────
 echo ""
