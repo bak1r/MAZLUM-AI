@@ -107,22 +107,21 @@ def create_app(brain, config):
                 action = msg.get("action", "message")
 
                 if action == "mic_mute":
-                    # Set mic mute on voice engine — client sends desired state
+                    # Set mic mute on voice engine
+                    log.info(f"Mic mute request received: {msg}")
                     try:
-                        import main as _main_mod
-                        ve = getattr(_main_mod, '_voice_engine_instance', None)
+                        import sys
+                        _main_mod = sys.modules.get('__main__') or sys.modules.get('main')
+                        ve = getattr(_main_mod, '_voice_engine_instance', None) if _main_mod else None
                         if ve:
-                            # Client gönderdiği değeri al, yoksa toggle yap
-                            if 'muted' in msg:
-                                ve.mic_muted = bool(msg['muted'])
-                            else:
-                                ve.mic_muted = not ve.mic_muted
+                            ve.mic_muted = bool(msg.get('muted', not ve.mic_muted))
                             await broadcast("mic_mute", {"muted": ve.mic_muted})
                             log.info(f"Mic mute: {'ON' if ve.mic_muted else 'OFF'}")
                         else:
+                            log.warning(f"Mic mute: voice engine not found (modules: {[k for k in sys.modules if 'main' in k]})")
                             await broadcast("mic_mute", {"muted": False, "error": "Voice engine not running"})
                     except Exception as e:
-                        log.error(f"Mic mute error: {e}")
+                        log.error(f"Mic mute error: {e}", exc_info=True)
                     continue
 
                 if action == "message":

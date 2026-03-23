@@ -239,6 +239,11 @@ async def run_voice(brain, config, log):
         log.info("Telegram mention → Sesli bildirim bağlandı.")
 
         async def _on_dm(sender_name, sender_username, text_preview, is_important):
+            # Kendi botumuzun mesajlarını filtrele
+            sn = (sender_name or "").lower()
+            su = (sender_username or "").lower()
+            if "mazlum" in sn or "mazlum" in su:
+                return
             if is_important:
                 notification = (
                     f"[BİLDİRİM] {sender_name} özel mesaj attı. "
