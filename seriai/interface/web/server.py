@@ -17,6 +17,15 @@ _TEMPLATES_DIR = Path(__file__).parent / "templates"
 # Connected WebSocket clients
 _clients: Set = set()
 
+# Voice engine referansı — main.py'den set edilir
+_voice_engine_ref = None
+
+def set_voice_engine(ve):
+    """main.py'den voice engine referansını al."""
+    global _voice_engine_ref
+    _voice_engine_ref = ve
+    log.info(f"Voice engine referansı alındı: {type(ve).__name__}")
+
 
 async def broadcast(event_type: str, data: dict):
     """Broadcast event to all connected WebSocket clients."""
@@ -107,21 +116,15 @@ def create_app(brain, config):
                 action = msg.get("action", "message")
 
                 if action == "mic_mute":
-                    # Set mic mute on voice engine
-                    log.info(f"Mic mute request received: {msg}")
-                    try:
-                        import sys
-                        _main_mod = sys.modules.get('__main__') or sys.modules.get('main')
-                        ve = getattr(_main_mod, '_voice_engine_instance', None) if _main_mod else None
-                        if ve:
-                            ve.mic_muted = bool(msg.get('muted', not ve.mic_muted))
-                            await broadcast("mic_mute", {"muted": ve.mic_muted})
-                            log.info(f"Mic mute: {'ON' if ve.mic_muted else 'OFF'}")
-                        else:
-                            log.warning(f"Mic mute: voice engine not found (modules: {[k for k in sys.modules if 'main' in k]})")
-                            await broadcast("mic_mute", {"muted": False, "error": "Voice engine not running"})
-                    except Exception as e:
-                        log.error(f"Mic mute error: {e}", exc_info=True)
+                    # Set mic mute on voice engine — doğrudan referans
+                    ve = _voice_engine_ref
+                    if ve:
+                        ve.mic_muted = bool(msg.get('muted', not ve.mic_muted))
+                        await broadcast("mic_mute", {"muted": ve.mic_muted})
+                        log.info(f"Mic mute: {'ON' if ve.mic_muted else 'OFF'}")
+                    else:
+                        log.warning("Mic mute: voice engine henüz başlamadı")
+                        await broadcast("mic_mute", {"muted": False})
                     continue
 
                 if action == "message":
@@ -144,7 +147,7 @@ def create_app(brain, config):
                                 None,
                                 lambda: brain.process(user_text, context={"source": "web"})
                             ),
-                            timeout=60.0,
+                            timeout=300.0,
                         )
 
                         elapsed = int((time.time() - t0) * 1000)

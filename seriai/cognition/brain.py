@@ -160,6 +160,7 @@ class Brain:
         """
         t0 = time.time()
         context = context or {}
+        _forced_text = None  # Fallback metin — forced final answer boş dönerse kullanılır
 
         # Step 0: FAST PATH — instant tasks bypass LLM entirely
         fast = self._try_fast_path(user_text)
@@ -196,10 +197,11 @@ class Brain:
         provider_name, model_name, max_tokens = self._select_model(routing)
         provider = get_provider(provider_name)
 
-        # Step 4: Build system prompt — LIGHT for simple chat, FULL for complex
+        # Step 4: Build system prompt — her zaman domain context dahil
         is_light = (routing.complexity == "simple"
                     and routing.intent == "chat"
-                    and routing.domain in ("general", "desktop"))
+                    and routing.domain in ("general", "desktop")
+                    and not routing.suggested_tools)
 
         system = build_system_prompt(
             domain=routing.domain,
@@ -207,23 +209,19 @@ class Brain:
             owner_name=self.config.owner_name,
         )
 
+        # Domain context her zaman eklenir (knowledge, memory, iş kuralları)
+        domain_ctx = build_domain_context(routing, self.memory, self.config)
+        if domain_ctx:
+            system += "\n\n" + domain_ctx
         if not is_light:
-            # Heavy path: inject domain context + capabilities
-            domain_ctx = build_domain_context(routing, self.memory, self.config)
-            if domain_ctx:
-                system += "\n\n" + domain_ctx
             system += "\n\n" + self.capabilities.build_capability_prompt()
 
-        # Step 5: Build messages — light path skips history for simple greetings
-        if is_light:
-            messages = [{"role": "user", "content": user_text}]
-        else:
-            messages = self._build_messages(user_text, context)
+        # Step 5: Build messages — her zaman conversation history dahil
+        messages = self._build_messages(user_text, context)
 
         # Step 6: Get available tools for this domain
-        # remember_fact her zaman dahil (model konuşmadan öğrendiğini kaydetsin)
         tool_names = list(routing.suggested_tools)
-        if not is_light and "remember_fact" not in tool_names:
+        if "remember_fact" not in tool_names:
             tool_names.append("remember_fact")
         tool_schemas = self.tools.get_schemas(tool_names)
 
@@ -343,7 +341,7 @@ class Brain:
         with self._conv_lock:
             conv = self._conversations.setdefault(source, [])
             conv.append({"role": "user", "content": user_text})
-            conv.append({"role": "assistant", "content": resp.text})
+            conv.append({"role": "assistant", "content": (resp.text or "")[:800]})
             self._trim_history(source)
             self._last_domain[source] = routing.domain
 
@@ -354,7 +352,7 @@ class Brain:
         final_text = (resp.text or "").strip()
         if not final_text:
             # _forced_text varsa kullan (tool sonuçlarından oluşturulmuş özet)
-            final_text = locals().get('_forced_text', "Analiz tamamlandı ancak sonuç üretilemedi. Lütfen soruyu tekrar deneyin.")
+            final_text = _forced_text or "Analiz tamamlandı ancak sonuç üretilemedi. Lütfen soruyu tekrar deneyin."
 
         return BrainResponse(
             text=final_text,

@@ -211,6 +211,10 @@ async def run_voice(brain, config, log):
     )
     _voice_engine_instance = voice
 
+    # Web server'a voice engine referansı ver (mic mute için)
+    from seriai.interface.web.server import set_voice_engine
+    set_voice_engine(voice)
+
     if not voice.is_available():
         log.warning("pyaudio yüklü değil. Voice başlatılamıyor.")
         return
