@@ -153,10 +153,11 @@ class Brain:
                 )
         return None
 
-    def process(self, user_text: str, context: dict = None) -> BrainResponse:
+    def process(self, user_text: str, context: dict = None, progress_callback=None) -> BrainResponse:
         """
         Process a user message end-to-end.
         context: optional metadata (source=telegram/chat/web, user_id, etc.)
+        progress_callback: optional callable(text) — her tool round'unda ara sonuç gönderir
         """
         t0 = time.time()
         context = context or {}
@@ -246,6 +247,13 @@ class Brain:
                 # No tool calls → done
                 if not resp.tool_calls:
                     break
+
+                # Progress callback — Claude her round'da ara metin üretir, bunu gönder
+                if progress_callback and resp.text and resp.text.strip() and len(resp.text.strip()) > 15:
+                    try:
+                        progress_callback(resp.text.strip())
+                    except Exception as pe:
+                        log.warning(f"Progress callback error: {pe}")
 
                 # Execute tools
                 tool_results = []

@@ -184,8 +184,35 @@ class TelegramBot:
             typing_task = asyncio.create_task(keep_typing())
 
             try:
-                # Process through brain (with timeout to prevent indefinite blocking)
+                # Progress callback — Brain her tool round'unda ara sonuç gönderir
                 loop = asyncio.get_running_loop()
+                progress_queue = asyncio.Queue()
+
+                def on_progress(text):
+                    """Brain'den gelen ara sonuçları queue'ya ekle (thread-safe)."""
+                    loop.call_soon_threadsafe(progress_queue.put_nowait, text)
+
+                async def send_progress():
+                    """Queue'daki ara sonuçları Telegram'a gönder."""
+                    while typing_active:
+                        try:
+                            text = await asyncio.wait_for(progress_queue.get(), timeout=2.0)
+                            if text and text.strip():
+                                max_len = self.config.telegram.max_message_length
+                                msg = text.strip()[:max_len]
+                                try:
+                                    await update.message.reply_text(msg)
+                                    await update.message.chat.send_action(ChatAction.TYPING)
+                                except Exception:
+                                    pass
+                        except asyncio.TimeoutError:
+                            continue
+                        except Exception:
+                            break
+
+                progress_task = asyncio.create_task(send_progress())
+
+                # Process through brain (with timeout)
                 response = await asyncio.wait_for(
                     loop.run_in_executor(
                         None,
@@ -196,20 +223,26 @@ class TelegramBot:
                                 "user_id": user_id,
                                 "username": update.effective_user.username or "",
                             },
+                            progress_callback=on_progress,
                         ),
                     ),
                     timeout=300.0,
                 )
             finally:
-                # Stop typing indicator
+                # Stop typing + progress
                 typing_active = False
                 typing_task.cancel()
+                progress_task.cancel()
                 try:
                     await typing_task
-                except asyncio.CancelledError:
+                except (asyncio.CancelledError, Exception):
+                    pass
+                try:
+                    await progress_task
+                except (asyncio.CancelledError, Exception):
                     pass
 
-            # Send response (split if too long)
+            # Send final response (split if too long)
             reply = (response.text or "").strip()
             if not reply:
                 reply = "Analiz tamamlandı ancak sonuç üretilemedi. Lütfen soruyu tekrar deneyin."
@@ -217,9 +250,10 @@ class TelegramBot:
             if len(reply) <= max_len:
                 await update.message.reply_text(reply)
             else:
-                # Split into chunks
                 for i in range(0, len(reply), max_len):
-                    await update.message.reply_text(reply[i:i + max_len])
+                    chunk = reply[i:i + max_len].strip()
+                    if chunk:
+                        await update.message.reply_text(chunk)
 
         except asyncio.TimeoutError:
             log.warning(f"Telegram brain timeout (300s) for user {user_id}")
