@@ -1086,39 +1086,24 @@ function checkHideDur() {
 // ─── Mic Mute ───────────────────────────────────────────────────
 let micMuted = false;
 function toggleMicMute() {
-  // Anında görsel geri bildirim — WebSocket cevabını bekleme
   micMuted = !micMuted;
-  updateMuteUI();
-  console.log('[MAZLUM] Mic mute toggled:', micMuted, 'ws ready:', ws?.readyState);
-  if (ws && ws.readyState === 1) {
-    ws.send(JSON.stringify({action: 'mic_mute', muted: micMuted}));
-    console.log('[MAZLUM] mic_mute sent to server, muted:', micMuted);
-  } else {
-    console.warn('[MAZLUM] WebSocket not connected, mic_mute not sent');
+  var btn = document.getElementById('btnMute');
+  if (btn) {
+    btn.classList.toggle('muted', micMuted);
+    btn.textContent = micMuted ? '🔇' : '🎙️';
   }
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({action:'mic_mute', muted:micMuted}));
 }
 function updateMuteUI() {
-  const btn = $('btnMute');
-  btn.classList.toggle('muted', micMuted);
-  btn.innerHTML = micMuted ? '🔇' : '🎙️';
-  btn.title = micMuted ? 'Mikrofon Kapalı — Aç (K)' : 'Mikrofonu Sessize Al (K)';
-  // Basma animasyonu
-  btn.style.transform = 'scale(0.85)';
-  setTimeout(() => { btn.style.transform = ''; }, 150);
-  // Bildirim
-  showNotif({
-    title: micMuted ? '🔇 MİKROFON KAPALI' : '🎙️ MİKROFON AÇIK',
-    message: micMuted ? 'MAZLUM seni duymuyor' : 'MAZLUM seni duyuyor',
-    priority: micMuted ? 'urgent' : 'normal',
-    duration: 2000
-  });
+  var btn = document.getElementById('btnMute');
+  if (btn) {
+    btn.classList.toggle('muted', micMuted);
+    btn.textContent = micMuted ? '🔇' : '🎙️';
+  }
 }
 function onMicMute(d) {
-  // Sunucu onayı — state'i senkronize et
-  if (d.muted !== micMuted) {
-    micMuted = d.muted;
-    updateMuteUI();
-  }
+  micMuted = !!d.muted;
+  updateMuteUI();
 }
 
 // ─── Shutdown ───────────────────────────────────────────────────
@@ -1883,16 +1868,6 @@ document.addEventListener('DOMContentLoaded', () => {
     $('toggleRight').addEventListener('click', toggleDrawerRight);
     $('drawerOverlay').addEventListener('click', closeAllDrawers);
   } catch(e) { console.error('[MAZLUM] Drawer init error:', e); }
-
-  // Mute button
-  try {
-    $('btnMute').addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleMicMute();
-    });
-    console.log('[MAZLUM] btnMute listener attached');
-  } catch(e) { console.error('[MAZLUM] btnMute init error:', e); }
 
   // Input handlers
   $('msgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
