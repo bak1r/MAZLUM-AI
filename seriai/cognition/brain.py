@@ -72,6 +72,7 @@ class Brain:
         self.tools = tools
         self.capabilities = CapabilityRegistry()
         self._conversations: dict[str, list] = {}  # per-source conversation history
+        self._last_domain: dict[str, str] = {}     # per-source last domain (for follow-ups)
         self._conv_lock = threading.Lock()
         self._max_history = 10         # last N turns kept
 
@@ -167,6 +168,18 @@ class Brain:
 
         # Step 1: Fast classify
         routing = classify_fast(user_text)
+
+        # Follow-up detection: kısa/genel mesajlar önceki domain'e yönlendirilir
+        source = (context or {}).get("source", "cli")
+        if routing.domain == "general" and len(user_text.split()) <= 15:
+            with self._conv_lock:
+                prev_domain = self._last_domain.get(source)
+            if prev_domain and prev_domain != "general":
+                from seriai.cognition.router import _get_domain_tools
+                routing.domain = prev_domain
+                routing.suggested_tools = _get_domain_tools(prev_domain)
+                log.info(f"Follow-up detected → domain override: general → {prev_domain}")
+
         log.info(f"Routing: domain={routing.domain} intent={routing.intent} "
                  f"complexity={routing.complexity} tier={routing.model_tier}")
 
@@ -325,13 +338,14 @@ class Brain:
                 latency_ms=elapsed,
             )
 
-        # Step 8: Update conversation history (per-source, thread-safe)
+        # Step 8: Update conversation history + last domain (per-source, thread-safe)
         source = (context or {}).get("source", "cli")
         with self._conv_lock:
             conv = self._conversations.setdefault(source, [])
             conv.append({"role": "user", "content": user_text})
             conv.append({"role": "assistant", "content": resp.text})
             self._trim_history(source)
+            self._last_domain[source] = routing.domain
 
         # Step 9: Memory write gate
         self._memory_write_gate(user_text, resp.text, routing)
