@@ -30,7 +30,7 @@ from seriai.tools.registry import ToolRegistry
 
 log = logging.getLogger("seriai.cognition.brain")
 
-MAX_TOOL_ROUNDS = 4
+MAX_TOOL_ROUNDS = 8
 
 
 def _turkish_lower(text: str) -> str:
@@ -286,8 +286,20 @@ class Brain:
                     )
                     total_in += final_resp.input_tokens
                     total_out += final_resp.output_tokens
-                    if final_resp.text:
+                    if final_resp.text and final_resp.text.strip():
                         resp = final_resp
+                    else:
+                        log.warning("Forced final answer also returned empty text, building from tool results")
+                        # Tool sonuçlarından son veriyi çek — fallback metin oluştur
+                        _tool_texts = []
+                        for m in messages:
+                            c = m.get("content", "")
+                            if m.get("role") == "user" and isinstance(c, str) and len(c) > 20:
+                                _tool_texts.append(c)
+                        if _tool_texts:
+                            _forced_text = f"İşte bulduğum sonuçlar:\n\n{_tool_texts[-1][:1500]}"
+                        else:
+                            _forced_text = "Analiz yapıldı ancak sonuçlar çok karmaşık. Lütfen soruyu daha spesifik sorun."
                 except Exception as fe:
                     log.error(f"Final answer call failed: {fe}")
                     from seriai.monitoring.telemetry import report
@@ -327,7 +339,8 @@ class Brain:
         elapsed = int((time.time() - t0) * 1000)
         final_text = (resp.text or "").strip()
         if not final_text:
-            final_text = "Analiz tamamlandı ancak sonuç üretilemedi. Lütfen soruyu tekrar deneyin."
+            # _forced_text varsa kullan (tool sonuçlarından oluşturulmuş özet)
+            final_text = locals().get('_forced_text', "Analiz tamamlandı ancak sonuç üretilemedi. Lütfen soruyu tekrar deneyin.")
 
         return BrainResponse(
             text=final_text,
