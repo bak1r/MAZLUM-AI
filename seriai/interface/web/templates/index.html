@@ -504,7 +504,7 @@ footer{
     </div>
     <div class="chat-area" id="chatArea"></div>
     <div class="input-wrap">
-      <button class="btn-mute" id="btnMute" title="Mikrofonu Sessize Al (K)">&#127897;&#65039;</button>
+      <button class="btn-mute" id="btnMute" title="Mikrofonu Sessize Al (K)" onclick="toggleMicMute()">&#127897;&#65039;</button>
       <button class="btn-mic" id="btnMic" title="Sesli konu&#351; (M)">&#127908;</button>
       <input type="text" id="msgInput" placeholder="Mesaj yaz veya sesli konu&#351;..." autocomplete="off">
       <button class="btn-send" id="btnSend">G&#246;nder</button>
@@ -1875,13 +1875,24 @@ function sendMessage() {
 // INIT
 // ═══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
-  // Drawer toggles
-  $('toggleLeft').addEventListener('click', toggleDrawerLeft);
-  $('toggleRight').addEventListener('click', toggleDrawerRight);
-  $('drawerOverlay').addEventListener('click', closeAllDrawers);
+  console.log('[MAZLUM] DOMContentLoaded fired');
 
-  // Mute button (must be inside DOMContentLoaded)
-  $('btnMute').onclick = toggleMicMute;
+  // Drawer toggles (with safety check)
+  try {
+    $('toggleLeft').addEventListener('click', toggleDrawerLeft);
+    $('toggleRight').addEventListener('click', toggleDrawerRight);
+    $('drawerOverlay').addEventListener('click', closeAllDrawers);
+  } catch(e) { console.error('[MAZLUM] Drawer init error:', e); }
+
+  // Mute button
+  try {
+    $('btnMute').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleMicMute();
+    });
+    console.log('[MAZLUM] btnMute listener attached');
+  } catch(e) { console.error('[MAZLUM] btnMute init error:', e); }
 
   // Input handlers
   $('msgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
