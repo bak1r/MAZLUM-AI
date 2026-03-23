@@ -1091,8 +1091,8 @@ function toggleMicMute() {
   updateMuteUI();
   console.log('[MAZLUM] Mic mute toggled:', micMuted, 'ws ready:', ws?.readyState);
   if (ws && ws.readyState === 1) {
-    ws.send(JSON.stringify({action: 'mic_mute'}));
-    console.log('[MAZLUM] mic_mute sent to server');
+    ws.send(JSON.stringify({action: 'mic_mute', muted: micMuted}));
+    console.log('[MAZLUM] mic_mute sent to server, muted:', micMuted);
   } else {
     console.warn('[MAZLUM] WebSocket not connected, mic_mute not sent');
   }
