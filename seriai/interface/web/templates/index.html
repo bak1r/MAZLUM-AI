@@ -1087,12 +1087,8 @@ function checkHideDur() {
 let micMuted = false;
 function toggleMicMute() {
   micMuted = !micMuted;
-  var btn = document.getElementById('btnMute');
-  if (btn) {
-    btn.classList.toggle('muted', micMuted);
-    btn.textContent = micMuted ? '🔇' : '🎙️';
-  }
-  if (ws && ws.readyState === 1) ws.send(JSON.stringify({action:'mic_mute', muted:micMuted}));
+  updateMuteUI();
+  send('mic_mute', {muted: micMuted});
 }
 function updateMuteUI() {
   var btn = document.getElementById('btnMute');

@@ -198,7 +198,7 @@ class TelegramBot:
                             },
                         ),
                     ),
-                    timeout=60.0,
+                    timeout=300.0,
                 )
             finally:
                 # Stop typing indicator
