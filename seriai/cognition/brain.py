@@ -302,12 +302,20 @@ class Brain:
                     else:
                         log.warning("Forced final answer also returned empty text, building from tool results")
                         # Tool sonuçlarından son veriyi çek — fallback metin oluştur
+                        # Anthropic: tool results = role="user", content=[{type:"tool_result", content:"..."}]
+                        # Non-Anthropic: role="user", content="[id]: result\n..."
                         _tool_texts = []
                         for m in messages:
-                            role = m.get("role", "")
                             c = m.get("content", "")
-                            # tool sonuçları (role=tool) — user mesajı DEĞİL
-                            if role == "tool" and isinstance(c, str) and len(c) > 20:
+                            if isinstance(c, list):
+                                # Anthropic format — tool_result dict'leri
+                                for item in c:
+                                    if isinstance(item, dict) and item.get("type") == "tool_result":
+                                        txt = item.get("content", "")
+                                        if isinstance(txt, str) and len(txt) > 20:
+                                            _tool_texts.append(txt)
+                            elif isinstance(c, str) and "[" in c and "]:" in c and len(c) > 30:
+                                # Non-Anthropic format — "[tool_id]: result"
                                 _tool_texts.append(c)
                         if _tool_texts:
                             last_results = "\n---\n".join(_tool_texts[-3:])[:2000]
