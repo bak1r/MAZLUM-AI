@@ -304,11 +304,14 @@ class Brain:
                         # Tool sonuçlarından son veriyi çek — fallback metin oluştur
                         _tool_texts = []
                         for m in messages:
+                            role = m.get("role", "")
                             c = m.get("content", "")
-                            if m.get("role") == "user" and isinstance(c, str) and len(c) > 20:
+                            # tool sonuçları (role=tool) — user mesajı DEĞİL
+                            if role == "tool" and isinstance(c, str) and len(c) > 20:
                                 _tool_texts.append(c)
                         if _tool_texts:
-                            _forced_text = f"İşte bulduğum sonuçlar:\n\n{_tool_texts[-1][:1500]}"
+                            last_results = "\n---\n".join(_tool_texts[-3:])[:2000]
+                            _forced_text = f"Analiz tamamlandı. İşte elde ettiğim veriler:\n\n{last_results}"
                         else:
                             _forced_text = "Analiz yapıldı ancak sonuçlar çok karmaşık. Lütfen soruyu daha spesifik sorun."
                 except Exception as fe:
