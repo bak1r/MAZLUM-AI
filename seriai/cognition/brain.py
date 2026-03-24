@@ -517,9 +517,12 @@ class Brain:
         """
         if not response or len(response) < 50:
             return
-        if routing.intent == "chat" and routing.complexity == "simple":
-            return
         if not self.memory:
+            return
+        # Sadece kullanıcı açıkça "kaydet/hatırla" derse veya uzun öğretici mesaj yazdıysa
+        user_lower = user_text.lower()
+        explicit_save = any(w in user_lower for w in ["kaydet", "hatırla", "unutma", "hafıza", "öğren", "not al"])
+        if not explicit_save and len(user_text) < 100:
             return
 
         try:
