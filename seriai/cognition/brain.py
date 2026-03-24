@@ -527,11 +527,14 @@ class Brain:
             provider = get_provider(self.config.models.light_provider)
 
             extract_prompt = (
-                "Aşağıdaki konuşmadan kalıcı hafızaya kaydedilecek bilgi var mı? "
-                "Sadece iş kuralları, kişi rolleri, süreçler, müşteri bilgileri gibi "
-                "tekrar kullanılabilir bilgileri çıkar.\n"
-                "KAYDETME: Sıradan sohbet, geçici hatalar, teknik sorunlar, belirsiz tahminler.\n"
-                "KAYDET: Kesin iş kuralları, kişi isimleri/rolleri, şirket bilgileri, süreç tanımları.\n\n"
+                "Aşağıdaki konuşmada kullanıcı açıkça 'bunu kaydet/hatırla/unutma' dedi mi? "
+                "Veya yeni bir iş kuralı/metodoloji/süreç ÖĞRETTİ mi?\n\n"
+                "SADECE şu durumlarda kaydet:\n"
+                "1. Kullanıcı açıkça 'kaydet/hatırla/unutma' dedi\n"
+                "2. Kullanıcı yeni bir iş kuralı veya metodoloji öğretti\n"
+                "3. Kullanıcı birinin adını/rolünü söyledi\n\n"
+                "KAYDETME: Analiz sonuçları, geçici veriler, hatalar, tahminler, "
+                "sıradan sohbet, sayısal sonuçlar, DB sorgu çıktıları.\n\n"
                 "Varsa JSON formatında döndür: [{\"category\": \"...\", \"fact\": \"...\"}]\n"
                 "Yoksa boş liste döndür: []\n\n"
                 f"Geçerli kategoriler: {', '.join(VALID_CATEGORIES)}\n\n"
