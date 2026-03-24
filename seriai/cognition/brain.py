@@ -171,16 +171,22 @@ class Brain:
         # Step 1: Fast classify
         routing = classify_fast(user_text)
 
-        # Follow-up detection: kısa/genel mesajlar önceki domain'e yönlendirilir
+        # Follow-up detection: kısa mesajlar veya yanlış domain'e düşenler önceki domain'e yönlendirilir
         source = (context or {}).get("source", "cli")
-        if routing.domain == "general" and len(user_text.split()) <= 15:
+        word_count = len(user_text.split())
+        is_followup = (
+            word_count <= 20
+            and routing.domain in ("general", "support", "hr", "engineering", "operations", "legal")
+        )
+        if is_followup:
             with self._conv_lock:
                 prev_domain = self._last_domain.get(source)
-            if prev_domain and prev_domain != "general":
+            if prev_domain and prev_domain not in ("general",):
                 from seriai.cognition.router import _get_domain_tools
+                old_domain = routing.domain
                 routing.domain = prev_domain
                 routing.suggested_tools = _get_domain_tools(prev_domain)
-                log.info(f"Follow-up detected → domain override: general → {prev_domain}")
+                log.info(f"Follow-up detected → domain override: {old_domain} → {prev_domain}")
 
         log.info(f"Routing: domain={routing.domain} intent={routing.intent} "
                  f"complexity={routing.complexity} tier={routing.model_tier}")
@@ -293,26 +299,49 @@ class Brain:
             if resp.tool_calls:
                 log.warning(f"Max tool rounds ({MAX_TOOL_ROUNDS}) exhausted, forcing final answer")
                 try:
-                    # Tüm tool sonuçlarını topla (hem Anthropic hem non-Anthropic format)
+                    # Tüm tool sonuçlarını topla — HER format desteklenir
                     _tool_texts = []
                     for m in messages:
                         c = m.get("content", "")
+                        role = m.get("role", "")
+                        # Anthropic format: role=user, content=[{type:tool_result, content:"..."}]
                         if isinstance(c, list):
                             for item in c:
-                                if isinstance(item, dict) and item.get("type") == "tool_result":
+                                if isinstance(item, dict):
                                     txt = item.get("content", "")
                                     if isinstance(txt, str) and len(txt) > 10:
                                         _tool_texts.append(txt[:1500])
-                        elif isinstance(c, str) and m.get("role") == "user" and len(c) > 30 and (":" in c or "SELECT" in c.upper()):
+                        # Non-Anthropic veya string tool sonuçları
+                        elif isinstance(c, str) and role == "user" and len(c) > 30 and c != user_text:
                             _tool_texts.append(c[:1500])
+                    log.info(f"Forced answer: {len(_tool_texts)} tool sonucu toplandı, {len(messages)} mesaj")
+                    # Ayrıca Claude'un ara metinlerini de topla
+                    _assistant_texts = []
+                    for m in messages:
+                        if m.get("role") == "assistant":
+                            c = m.get("content", "")
+                            if isinstance(c, str) and len(c) > 15 and c != "[tool_use]":
+                                _assistant_texts.append(c[:500])
 
-                    # Hafif messages listesi: orijinal soru + tüm tool sonuçları özeti
+                    # Hafif messages listesi: orijinal soru + tool sonuçları + ara analizler
                     tool_summary = "\n\n---\n\n".join(_tool_texts[-6:])  # Son 6 tool sonucu
+                    assistant_summary = "\n".join(_assistant_texts[-4:]) if _assistant_texts else ""
+
+                    combined_data = ""
+                    if assistant_summary:
+                        combined_data += f"SENİN ARA ANALİZLERİN:\n{assistant_summary}\n\n"
+                    if tool_summary:
+                        combined_data += f"TOOL SONUÇLARI (DB sorguları vb.):\n{tool_summary}"
+
+                    if not combined_data.strip():
+                        combined_data = "Veri toplanamadı."
+
                     summary_msg = [
                         {"role": "user", "content": f"Kullanıcının sorusu: {user_text}\n\n"
-                         f"Aşağıda bu soruyu araştırırken topladığın tüm veriler var. "
-                         f"Bu verileri kullanarak KAPSAMLI, rakamlarla desteklenmiş bir cevap yaz.\n\n"
-                         f"TOPLANAN VERİLER:\n{tool_summary}"}
+                         f"Bu soruyu araştırırken topladığın veriler aşağıda. "
+                         f"Bu verileri kullanarak KAPSAMLI, rakamlarla desteklenmiş bir SONUÇ yaz. "
+                         f"Varsayım YAPMA — sadece verilere dayan.\n\n"
+                         f"{combined_data}"}
                     ]
 
                     final_resp = provider.chat(
@@ -329,8 +358,14 @@ class Brain:
                         resp = final_resp
                     else:
                         log.warning("Forced final answer also returned empty text")
+                        # Fallback: ham verileri doğrudan göster
+                        parts = []
+                        if _assistant_texts:
+                            parts.append("Ara analizlerim:\n" + "\n".join(_assistant_texts[-3:]))
                         if _tool_texts:
-                            _forced_text = f"Analiz tamamlandı. İşte elde ettiğim veriler:\n\n" + "\n---\n".join(_tool_texts[-3:])[:3000]
+                            parts.append("Toplanan veriler:\n" + "\n---\n".join(_tool_texts[-3:]))
+                        if parts:
+                            _forced_text = "\n\n".join(parts)[:4000]
                         else:
                             _forced_text = "Analiz yapıldı ancak sonuçlar çok karmaşık. Lütfen soruyu daha spesifik sorun."
                 except Exception as fe:
