@@ -30,7 +30,7 @@ from seriai.tools.registry import ToolRegistry
 
 log = logging.getLogger("seriai.cognition.brain")
 
-MAX_TOOL_ROUNDS = 8
+MAX_TOOL_ROUNDS = 16
 
 
 def _turkish_lower(text: str) -> str:
