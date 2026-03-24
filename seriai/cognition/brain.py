@@ -360,7 +360,7 @@ class Brain:
         with self._conv_lock:
             conv = self._conversations.setdefault(source, [])
             conv.append({"role": "user", "content": user_text})
-            conv.append({"role": "assistant", "content": (resp.text or "")[:800]})
+            conv.append({"role": "assistant", "content": (resp.text or "")[:2000]})
             self._trim_history(source)
             self._last_domain[source] = routing.domain
 
