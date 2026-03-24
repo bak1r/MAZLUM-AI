@@ -230,6 +230,11 @@ class Brain:
         tool_names = list(routing.suggested_tools)
         if "remember_fact" not in tool_names:
             tool_names.append("remember_fact")
+        # DB tool'ları her zaman ekle — domain yanlış olsa bile Claude erişebilsin
+        db_tools = ["db_query", "db_schema", "db_describe_table"]
+        for dt in db_tools:
+            if dt not in tool_names and self.tools.get_schemas([dt]):
+                tool_names.append(dt)
         tool_schemas = self.tools.get_schemas(tool_names)
 
         # Step 7: LLM call loop (with tool execution)
@@ -464,7 +469,7 @@ class Brain:
             max_tok = self.config.models.cognition_max_tokens
             if routing.intent == "analysis" or routing.complexity == "complex":
                 max_tok = max(max_tok, 8192)
-            log.info(f"Model: Sonnet 4 (reason: {'tools=' + str(routing.suggested_tools) if routing.suggested_tools else 'domain=' + routing.domain if routing.domain in _TOOL_DOMAINS else 'intent=' + routing.intent}, max_tokens={max_tok})")
+            log.info(f"Model: {self.config.models.cognition_model} (reason: {'tools=' + str(routing.suggested_tools) if routing.suggested_tools else 'domain=' + routing.domain if routing.domain in _TOOL_DOMAINS else 'intent=' + routing.intent}, max_tokens={max_tok})")
             return (
                 self.config.models.cognition_provider,
                 self.config.models.cognition_model,
@@ -484,7 +489,7 @@ class Brain:
             )
 
         # Default: Sonnet 4 (hiçbir durumda kalite düşürülmez)
-        log.info(f"Model: Sonnet 4 (reason: default, complexity={routing.complexity})")
+        log.info(f"Model: {self.config.models.cognition_model} (reason: default, complexity={routing.complexity})")
         return (
             self.config.models.cognition_provider,
             self.config.models.cognition_model,
