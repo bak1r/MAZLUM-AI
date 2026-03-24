@@ -510,14 +510,60 @@ class Brain:
 
     def _memory_write_gate(self, user_text: str, response: str, routing: RoutingDecision):
         """
-        Strict write gate: only save genuinely reusable facts.
-        NOT every conversation turn. NOT chat/greetings.
+        Auto-extract reusable facts from conversation using lightweight LLM call.
+        Only runs for non-trivial conversations. Uses Haiku (cheap + fast).
         """
-        if routing.intent == "chat" or routing.complexity == "simple":
+        if not response or len(response) < 50:
             return
-        # In future: use LLM to extract facts worth saving
-        # For now: no automatic memory writes
-        pass
+        if routing.intent == "chat" and routing.complexity == "simple":
+            return
+        if not self.memory:
+            return
+
+        try:
+            from seriai.memory.manager import VALID_CATEGORIES
+            provider = get_provider(self.config.models.light_provider)
+
+            extract_prompt = (
+                "Aşağıdaki konuşmadan kalıcı hafızaya kaydedilecek bilgi var mı? "
+                "Sadece iş kuralları, kişi rolleri, süreçler, müşteri bilgileri gibi "
+                "tekrar kullanılabilir bilgileri çıkar. Sıradan sohbet veya geçici bilgi ÇIKARMA.\n\n"
+                "Varsa JSON formatında döndür: [{\"category\": \"...\", \"fact\": \"...\"}]\n"
+                "Yoksa boş liste döndür: []\n\n"
+                f"Geçerli kategoriler: {', '.join(VALID_CATEGORIES)}\n\n"
+                f"Kullanıcı: {user_text[:500]}\n"
+                f"Asistan: {response[:500]}"
+            )
+
+            resp = provider.chat(
+                messages=[{"role": "user", "content": extract_prompt}],
+                model=self.config.models.light_model,
+                system="Sen bir bilgi çıkarma asistanısın. Sadece JSON döndür.",
+                max_tokens=512,
+                tools=None,
+                temperature=0.0,
+            )
+
+            if resp.text:
+                import json
+                text = resp.text.strip()
+                # JSON array'i bul
+                start = text.find('[')
+                end = text.rfind(']') + 1
+                if start >= 0 and end > start:
+                    facts = json.loads(text[start:end])
+                    for f in facts:
+                        cat = f.get("category", "")
+                        fact = f.get("fact", "")
+                        if cat in VALID_CATEGORIES and fact and len(fact) > 10:
+                            ok = self.memory.add_fact(cat, fact, source="auto")
+                            if ok:
+                                log.info(f"Memory auto-learned: [{cat}] {fact[:80]}")
+                    if facts:
+                        self.memory.save()
+
+        except Exception as e:
+            log.debug(f"Memory extraction skipped: {e}")
 
     def _register_memory_tool(self):
         """Register remember_fact tool — LLM konuşmadan öğrendiğini hafızaya kaydetsin."""
