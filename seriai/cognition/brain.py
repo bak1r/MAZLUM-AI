@@ -298,7 +298,7 @@ class Brain:
                     final_resp = provider.chat(
                         messages=messages,
                         model=model_name,
-                        system=system + "\n\nTool round limiti doldu. Elindeki verilerle KISA ve NET bir özet cevap ver. Yeni tool çağırma.",
+                        system=system + "\n\nTool round limiti doldu. Elindeki TÜM verileri kullanarak KAPSAMLI bir özet cevap ver. Bulgularını, rakamları, sonuçları açıkla. Yeni tool çağırma.",
                         max_tokens=max_tokens,
                         tools=None,
                         temperature=0.3,
