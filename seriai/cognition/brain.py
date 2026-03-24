@@ -226,15 +226,12 @@ class Brain:
         # Step 5: Build messages — her zaman conversation history dahil
         messages = self._build_messages(user_text, context)
 
-        # Step 6: Get available tools for this domain
-        tool_names = list(routing.suggested_tools)
+        # Step 6: Get ALL registered tools — domain routing sadece öncelik belirler
+        # Claude ihtiyaç duymadığını çağırmaz, ama erişimi her zaman olsun
+        all_registered = self.tools.list_tools()
+        tool_names = list(all_registered)
         if "remember_fact" not in tool_names:
             tool_names.append("remember_fact")
-        # DB tool'ları her zaman ekle — domain yanlış olsa bile Claude erişebilsin
-        db_tools = ["db_query", "db_schema", "db_describe_table"]
-        for dt in db_tools:
-            if dt not in tool_names and self.tools.get_schemas([dt]):
-                tool_names.append(dt)
         tool_schemas = self.tools.get_schemas(tool_names)
 
         # Step 7: LLM call loop (with tool execution)
