@@ -142,10 +142,17 @@ def create_app(brain, config):
                         loop = asyncio.get_running_loop()
                         t0 = time.time()
 
+                        # Progress callback — Brain'den gelen ara metinleri anında chat'e yaz
+                        def on_web_progress(text):
+                            asyncio.run_coroutine_threadsafe(
+                                broadcast("transcript", {"role": "system", "text": text}),
+                                loop
+                            )
+
                         response = await asyncio.wait_for(
                             loop.run_in_executor(
                                 None,
-                                lambda: brain.process(user_text, context={"source": "web"})
+                                lambda: brain.process(user_text, context={"source": "web"}, progress_callback=on_web_progress)
                             ),
                             timeout=300.0,
                         )

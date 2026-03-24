@@ -60,7 +60,8 @@ _DOMAIN_SIGNALS = {
         # İş terimleri
         "provider", "gateway", "panelsh", "serialhavale", "ekip", "operatör",
         "personal", "ortacı", "ortaci", "takviye", "revert",
-        "limit", "rapor", "kasa",
+        "limit", "rapor", "kasa", "sapma", "kayma", "muhasebe", "fark",
+        "teslimat", "hesapta kalan", "teorik", "analiz",
         # DB terimleri — serialhavale veritabanı
         "database", "veritabanı", "veritabani", "db", "tablo", "gecikme",
         "stabilite", "stabil",

@@ -527,7 +527,9 @@ class Brain:
             extract_prompt = (
                 "Aşağıdaki konuşmadan kalıcı hafızaya kaydedilecek bilgi var mı? "
                 "Sadece iş kuralları, kişi rolleri, süreçler, müşteri bilgileri gibi "
-                "tekrar kullanılabilir bilgileri çıkar. Sıradan sohbet veya geçici bilgi ÇIKARMA.\n\n"
+                "tekrar kullanılabilir bilgileri çıkar.\n"
+                "KAYDETME: Sıradan sohbet, geçici hatalar, teknik sorunlar, belirsiz tahminler.\n"
+                "KAYDET: Kesin iş kuralları, kişi isimleri/rolleri, şirket bilgileri, süreç tanımları.\n\n"
                 "Varsa JSON formatında döndür: [{\"category\": \"...\", \"fact\": \"...\"}]\n"
                 "Yoksa boş liste döndür: []\n\n"
                 f"Geçerli kategoriler: {', '.join(VALID_CATEGORIES)}\n\n"
