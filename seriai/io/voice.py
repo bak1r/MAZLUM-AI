@@ -400,7 +400,7 @@ class VoiceEngine:
                                 None,
                                 lambda: self.brain.process(args.get("user_request", ""), context={"source": "voice"})
                             ),
-                            timeout=150.0,
+                            timeout=300.0,
                         )
                         result = resp.text if (resp and resp.text and resp.text.strip()) else "Analiz tamamlandı ancak sonuç üretilemedi. Lütfen soruyu tekrar sorun."
                     except asyncio.TimeoutError:
