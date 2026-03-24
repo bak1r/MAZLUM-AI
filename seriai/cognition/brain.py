@@ -290,15 +290,35 @@ class Brain:
                     messages.append({"role": "user", "content": combined})
 
             # Max rounds exhausted but last response wanted more tools → force final answer
-            # resp.text olsa bile yarım cümle olabilir (örn "kontrol edeyim:")
             if resp.tool_calls:
                 log.warning(f"Max tool rounds ({MAX_TOOL_ROUNDS}) exhausted, forcing final answer")
                 try:
-                    # One more call WITHOUT tools to force a text summary
+                    # Tüm tool sonuçlarını topla (hem Anthropic hem non-Anthropic format)
+                    _tool_texts = []
+                    for m in messages:
+                        c = m.get("content", "")
+                        if isinstance(c, list):
+                            for item in c:
+                                if isinstance(item, dict) and item.get("type") == "tool_result":
+                                    txt = item.get("content", "")
+                                    if isinstance(txt, str) and len(txt) > 10:
+                                        _tool_texts.append(txt[:1500])
+                        elif isinstance(c, str) and m.get("role") == "user" and len(c) > 30 and (":" in c or "SELECT" in c.upper()):
+                            _tool_texts.append(c[:1500])
+
+                    # Hafif messages listesi: orijinal soru + tüm tool sonuçları özeti
+                    tool_summary = "\n\n---\n\n".join(_tool_texts[-6:])  # Son 6 tool sonucu
+                    summary_msg = [
+                        {"role": "user", "content": f"Kullanıcının sorusu: {user_text}\n\n"
+                         f"Aşağıda bu soruyu araştırırken topladığın tüm veriler var. "
+                         f"Bu verileri kullanarak KAPSAMLI, rakamlarla desteklenmiş bir cevap yaz.\n\n"
+                         f"TOPLANAN VERİLER:\n{tool_summary}"}
+                    ]
+
                     final_resp = provider.chat(
-                        messages=messages,
+                        messages=summary_msg,
                         model=model_name,
-                        system=system + "\n\nTool round limiti doldu. Elindeki TÜM verileri kullanarak KAPSAMLI bir özet cevap ver. Bulgularını, rakamları, sonuçları açıkla. Yeni tool çağırma.",
+                        system=system,
                         max_tokens=max_tokens,
                         tools=None,
                         temperature=0.3,
@@ -308,32 +328,18 @@ class Brain:
                     if final_resp.text and final_resp.text.strip():
                         resp = final_resp
                     else:
-                        log.warning("Forced final answer also returned empty text, building from tool results")
-                        # Tool sonuçlarından son veriyi çek — fallback metin oluştur
-                        # Anthropic: tool results = role="user", content=[{type:"tool_result", content:"..."}]
-                        # Non-Anthropic: role="user", content="[id]: result\n..."
-                        _tool_texts = []
-                        for m in messages:
-                            c = m.get("content", "")
-                            if isinstance(c, list):
-                                # Anthropic format — tool_result dict'leri
-                                for item in c:
-                                    if isinstance(item, dict) and item.get("type") == "tool_result":
-                                        txt = item.get("content", "")
-                                        if isinstance(txt, str) and len(txt) > 20:
-                                            _tool_texts.append(txt)
-                            elif isinstance(c, str) and "[" in c and "]:" in c and len(c) > 30:
-                                # Non-Anthropic format — "[tool_id]: result"
-                                _tool_texts.append(c)
+                        log.warning("Forced final answer also returned empty text")
                         if _tool_texts:
-                            last_results = "\n---\n".join(_tool_texts[-3:])[:2000]
-                            _forced_text = f"Analiz tamamlandı. İşte elde ettiğim veriler:\n\n{last_results}"
+                            _forced_text = f"Analiz tamamlandı. İşte elde ettiğim veriler:\n\n" + "\n---\n".join(_tool_texts[-3:])[:3000]
                         else:
                             _forced_text = "Analiz yapıldı ancak sonuçlar çok karmaşık. Lütfen soruyu daha spesifik sorun."
                 except Exception as fe:
                     log.error(f"Final answer call failed: {fe}")
                     from seriai.monitoring.telemetry import report
                     report("brain.final_answer", fe, context="Max tool rounds, final answer da başarısız")
+                    # Exception durumunda bile tool verilerini göster
+                    if _tool_texts:
+                        _forced_text = f"Analiz sırasında bir sorun oluştu ama veriler toplandı:\n\n" + "\n---\n".join(_tool_texts[-3:])[:3000]
 
         except Exception as e:
             # Provider error — return clear error to user, no silent fallback
