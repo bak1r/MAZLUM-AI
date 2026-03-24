@@ -48,7 +48,7 @@ def _extract_dir(text: str) -> str:
     if "resim" in t or "picture" in t:
         return "pictures"
     return "desktop"
-MAX_TOOL_RESULT_CHARS = 4096
+MAX_TOOL_RESULT_CHARS = 2048
 
 
 @dataclass
